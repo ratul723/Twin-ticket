@@ -1,0 +1,74 @@
+<template>
+    <template lwc:if={isLoading}>
+        <div class="page slds-is-relative state">
+            <lightning-spinner alternative-text="Loading event" size="medium"></lightning-spinner>
+        </div>
+    </template>
+
+    <template lwc:elseif={errorMessage}>
+        <div class="page">
+            <div class="state state--error" role="alert">{errorMessage}</div>
+            <lightning-button class="back" label="Back to all events" icon-name="utility:back" onclick={handleBack}></lightning-button>
+        </div>
+    </template>
+
+    <template lwc:elseif={ev}>
+        <section class="banner">
+            <div class="banner__inner">
+                <lightning-button variant="base" label="All events" icon-name="utility:back" class="banner__back" onclick={handleBack}></lightning-button>
+                <h1 class="banner__title">{ev.name}</h1>
+                <ul class="chips">
+                    <li class="chip">
+                        <lightning-icon icon-name="utility:clock" size="x-small" class="chip__icon"></lightning-icon>{ev.whenLabel}
+                    </li>
+                    <li class="chip">
+                        <lightning-icon icon-name="utility:location" size="x-small" class="chip__icon"></lightning-icon>{ev.venueName}
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <div class="page layout">
+            <div class="main">
+                <article class="panel">
+                    <h2 class="panel__title">About this event</h2>
+                    <p class="desc">{ev.description}</p>
+                </article>
+
+                <article class="panel">
+                    <h2 class="panel__title">Tickets and prices</h2>
+                    <template lwc:if={ev.hasCategories}>
+                        <ul class="tickets">
+                            <template for:each={ev.categories} for:item="cat">
+                                <li key={cat.id} class="tickets__row">
+                                    <span class="tickets__name">{cat.name}</span>
+                                    <span class="tickets__price">{cat.priceLabel}</span>
+                                    <span class={cat.badgeClass}>{cat.badgeText}</span>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                    <template lwc:else>
+                        <p class="muted">Ticket details are coming soon.</p>
+                    </template>
+                    <div class="cta">
+                        <lightning-button variant="brand" label="Bulk Ticket Purchase" icon-name="utility:ticket"
+                            disabled={ev.bulkDisabled} onclick={handleBulk}></lightning-button>
+                        <p class="muted">Bulk requests are reviewed by our team before payment.</p>
+                    </div>
+                </article>
+            </div>
+
+            <aside class="side">
+                <article class="panel">
+                    <h2 class="panel__title">Venue</h2>
+                    <p class="venue__name">{ev.venueName}</p>
+                    <p class="muted venue__addr">{ev.venueAddress}</p>
+                    <c-twin-venue-map latitude={ev.latitude} longitude={ev.longitude}
+                        venue-name={ev.venueName} venue-address={ev.venueAddress}></c-twin-venue-map>
+                </article>
+                <!-- Slice (f): add the weather forecast panel here -->
+            </aside>
+        </div>
+    </template>
+</template>

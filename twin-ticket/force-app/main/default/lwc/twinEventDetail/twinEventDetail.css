@@ -1,0 +1,154 @@
+:host {
+  display: block;
+  background: #f6f7fb;
+}
+.banner {
+  background: linear-gradient(135deg, #0f1b3d 0%, #3b2a8c 60%, #7c3aed 100%);
+  color: #fff;
+  padding: 2rem 1.5rem 2.5rem;
+}
+.banner__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.banner__back {
+  --slds-c-button-text-color: #e9d5ff;
+}
+.banner__title {
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-weight: 700;
+  margin: 0.5rem 0 1rem;
+}
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.chip {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+}
+.chip__icon {
+  margin-right: 0.4rem;
+  vertical-align: text-bottom;
+  --slds-c-icon-color-foreground-default: #fff;
+}
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 27, 61, 0.08);
+}
+.panel__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f1b3d;
+  margin-bottom: 0.75rem;
+}
+.desc {
+  color: #374151;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.venue__name {
+  font-weight: 700;
+}
+.venue__addr {
+  margin-bottom: 0.75rem;
+}
+.cta {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tickets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #eef0f4;
+}
+.tickets__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #eef0f4;
+}
+.tickets__name {
+  font-weight: 600;
+}
+.tickets__price {
+  font-weight: 700;
+  color: #3b2a8c;
+}
+.badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--low {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge--out {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.state {
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #475569;
+  min-height: 6rem;
+}
+.state--error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+  margin-bottom: 1rem;
+}
+.back {
+  display: inline-block;
+}
+
+@media (max-width: 52rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

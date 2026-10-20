@@ -1,0 +1,180 @@
+:host {
+  display: block;
+  background: #f6f7fb;
+}
+
+.hero {
+  background: linear-gradient(135deg, #0f1b3d 0%, #3b2a8c 55%, #7c3aed 100%);
+  color: #fff;
+  padding: 4rem 1.5rem;
+}
+.hero__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.hero__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+.hero__title {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0.5rem 0 1rem;
+}
+.hero__subtitle {
+  max-width: 40rem;
+  font-size: 1.05rem;
+  opacity: 0.92;
+}
+
+.events {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+}
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f1b3d;
+  margin-bottom: 1.25rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 24rem), 1fr));
+  gap: 1.25rem;
+}
+
+.card {
+  display: flex;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.9rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 27, 61, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(15, 27, 61, 0.14);
+}
+.card__date {
+  flex: 0 0 4rem;
+  height: 4.5rem;
+  border-radius: 0.75rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #7c3aed, #3b2a8c);
+}
+.card__month {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+}
+.card__day {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.card__body {
+  flex: 1;
+  min-width: 0;
+}
+.card__title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f1b3d;
+  margin-bottom: 0.35rem;
+}
+.card__meta {
+  color: #4b5563;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+.meta-icon {
+  margin-right: 0.35rem;
+  vertical-align: text-bottom;
+}
+.card__desc {
+  color: #374151;
+  margin: 0.6rem 0 0.8rem;
+}
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tickets {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid #eef0f4;
+}
+.tickets__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #eef0f4;
+}
+.tickets__name {
+  font-weight: 600;
+  color: #111827;
+}
+.tickets__price {
+  font-weight: 700;
+  color: #3b2a8c;
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badge--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge--low {
+  background: #fef3c7;
+  color: #92400e;
+}
+.badge--out {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.state {
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #475569;
+  min-height: 6rem;
+}
+.state--error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+  }
+  .card:hover {
+    transform: none;
+  }
+}

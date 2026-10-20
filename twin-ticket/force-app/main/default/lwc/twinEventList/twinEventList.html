@@ -1,0 +1,73 @@
+<template>
+    <section class="hero" aria-label="Twin Ticket">
+        <div class="hero__inner">
+            <p class="hero__eyebrow">Twin Ticket</p>
+            <h1 class="hero__title">Bulk tickets for events that matter</h1>
+            <p class="hero__subtitle">
+                Browse upcoming conferences, concerts and corporate programs. Request group tickets in minutes.
+                We verify every request and handle payment securely.
+            </p>
+        </div>
+    </section>
+
+    <section class="events">
+        <h2 class="section-title">Upcoming events</h2>
+
+        <template lwc:if={isLoading}>
+            <div class="state slds-is-relative">
+                <lightning-spinner alternative-text="Loading events" size="medium"></lightning-spinner>
+            </div>
+        </template>
+        <template lwc:elseif={errorMessage}>
+            <div class="state state--error" role="alert">{errorMessage}</div>
+        </template>
+        <template lwc:elseif={isEmpty}>
+            <div class="state">No upcoming events are published right now. Please check back soon.</div>
+        </template>
+        <template lwc:else>
+            <div class="grid">
+                <template for:each={events} for:item="ev">
+                    <article key={ev.id} class="card">
+                        <div class="card__date" aria-hidden="true">
+                            <span class="card__month">{ev.monthLabel}</span>
+                            <span class="card__day">{ev.dayLabel}</span>
+                        </div>
+                        <div class="card__body">
+                            <h3 class="card__title">{ev.name}</h3>
+                            <p class="card__meta">
+                                <lightning-icon icon-name="utility:clock" size="xx-small" class="meta-icon"></lightning-icon>
+                                {ev.whenLabel}
+                            </p>
+                            <p class="card__meta">
+                                <lightning-icon icon-name="utility:location" size="xx-small" class="meta-icon"></lightning-icon>
+                                {ev.venueName}
+                            </p>
+                            <p class="card__desc">{ev.shortDescription}</p>
+
+                            <template lwc:if={ev.hasCategories}>
+                                <ul class="tickets">
+                                    <template for:each={ev.categories} for:item="cat">
+                                        <li key={cat.id} class="tickets__row">
+                                            <span class="tickets__name">{cat.name}</span>
+                                            <span class="tickets__price">{cat.priceLabel}</span>
+                                            <span class={cat.badgeClass}>{cat.badgeText}</span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <template lwc:else>
+                                <p class="card__meta">Ticket details coming soon.</p>
+                            </template>
+
+                            <div class="card__actions">
+                                <lightning-button label="View details" data-id={ev.id} onclick={handleView}></lightning-button>
+                                <lightning-button variant="brand" label="Bulk Ticket Purchase" icon-name="utility:ticket"
+                                    data-id={ev.id} disabled={ev.bulkDisabled} onclick={handleBulk}></lightning-button>
+                            </div>
+                        </div>
+                    </article>
+                </template>
+            </div>
+        </template>
+    </section>
+</template>

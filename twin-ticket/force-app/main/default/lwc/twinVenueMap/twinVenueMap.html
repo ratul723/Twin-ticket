@@ -1,0 +1,20 @@
+<template>
+    <template lwc:if={hasLocation}>
+        <div class="map-frame">
+            <iframe class="map" title={mapTitle} src={embedUrl}></iframe>
+        </div>
+        <div class="map-actions">
+            <a href={directionsLink} target="_blank" rel="noopener noreferrer">Get directions</a>
+            <a href={osmLink} target="_blank" rel="noopener noreferrer">Open larger map</a>
+        </div>
+        <p class="credit">
+            Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors
+        </p>
+    </template>
+    <template lwc:else>
+        <div class="fallback">
+            <p class="fallback__title">Map not available for this venue</p>
+            <p>{venueAddress}</p>
+        </div>
+    </template>
+</template>
