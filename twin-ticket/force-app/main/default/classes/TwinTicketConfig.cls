@@ -30,6 +30,22 @@ public with sharing class TwinTicketConfig {
         Object v = value('Payments_Enabled__c');
         return v == null ? true : (Boolean) v;
     }
+        public static String portalProfileName() {
+        Object v = value('Portal_Profile_Name__c');
+        String s = v == null ? '' : String.valueOf(v).trim();
+        return String.isBlank(s) ? 'Customer Community User' : s;
+    }
+
+    /** Feature flag. If the field is missing entirely, portal provisioning stays ON. */
+    public static Boolean portalEnabled() {
+        Object v = value('Portal_Enabled__c');
+        return v == null ? true : (Boolean) v;
+    }
+
+    public static String portalLoginUrl() {
+        String base = siteBaseUrl();
+        return String.isBlank(base) ? '' : base + '/login';
+    }
 
     public static String siteBaseUrl() {
         Object v = value('Site_Base_Url__c');

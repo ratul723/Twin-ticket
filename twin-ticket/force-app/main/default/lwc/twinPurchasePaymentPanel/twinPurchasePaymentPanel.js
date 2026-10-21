@@ -5,6 +5,8 @@ import { notifyRecordUpdateAvailable } from 'lightning/uiRecordApi';
 import getOverview from '@salesforce/apex/PurchasePaymentController.getOverview';
 import sendPaymentLink from '@salesforce/apex/PurchasePaymentController.sendPaymentLink';
 import reverifyPayment from '@salesforce/apex/PurchasePaymentController.reverifyPayment';
+import requestPortalAccess from '@salesforce/apex/PurchasePaymentController.requestPortalAccess';
+import sendPasswordReset from '@salesforce/apex/PurchasePaymentController.sendPasswordReset';
 
 const STATUS_CLASS = {
     Paid: 'chip chip--ok', Completed: 'chip chip--ok', Pending: 'chip chip--pending', Created: 'chip chip--pending',
@@ -46,6 +48,36 @@ export default class TwinPurchasePaymentPanel extends LightningElement {
             amountLabel: a.amount == null ? '' : new Intl.NumberFormat('en-US', { style: 'currency', currency: a.currencyCode || 'USD' }).format(a.amount),
             createdLabel: new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(a.createdOn))
         }));
+    }
+    get portalText() {
+        switch (this.o.portalAccess) {
+            case 'ACTIVE': return `Portal access is active. Username: ${this.o.portalUsername || 'hidden'}`;
+            case 'INACTIVE': return 'A portal user exists but is inactive.';
+            case 'NONE': return 'The purchase is paid but no portal user exists yet.';
+            default: return 'Portal access is created automatically after verified payment.';
+        }
+    }
+    get showProvision() { return this.o.canManage && this.o.portalAccess === 'NONE'; }
+    get showReset() { return this.o.canManage && this.o.portalAccess === 'ACTIVE'; }
+
+    async handleProvision() {
+        await this.run(async () => {
+            const r = await requestPortalAccess({ recordId: this.recordId });
+            this.actionMessage = r.message;
+            this.toast('Portal access', r.message, r.outcome === 'OK' ? 'success' : 'error');
+        });
+    }
+
+    async handleReset() {
+        await this.run(async () => {
+            const r = await sendPasswordReset({ recordId: this.recordId });
+            this.actionMessage = r.message;
+            this.toast('Password email', r.message, r.outcome === 'OK' ? 'success' : 'error');
+        });
+    }
+
+    handlePreview() {
+        window.open(`/apex/TwinTicketConfirmation?id=${encodeURIComponent(this.recordId)}`, '_blank', 'noopener');
     }
 
     async handleSend() {

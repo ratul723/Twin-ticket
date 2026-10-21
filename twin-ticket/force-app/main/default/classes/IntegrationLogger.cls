@@ -24,6 +24,12 @@ public without sharing class IntegrationLogger {
             System.debug(LoggingLevel.ERROR, 'TT-LOG could not write integration logs: ' + e.getMessage());
         }
     }
+        /** Hands the buffered rows to a Queueable. Used where a database write would clash with setup-object changes. */
+    public static List<Integration_Log__c> drain() {
+        List<Integration_Log__c> rows = buffer.clone();
+        buffer.clear();
+        return rows;
+    }
 
     @TestVisible
     private static String sanitize(String message) {

@@ -31,6 +31,21 @@
                 <lightning-button variant="brand" label={sendLabel} icon-name="utility:email" disabled={actionsDisabled} onclick={handleSend}></lightning-button>
                 <lightning-button variant="neutral" label="Re-verify payment" icon-name="utility:refresh" disabled={actionsDisabled} onclick={handleReverify}></lightning-button>
             </div>
+            <article class="panel portal">
+                <h3 class="panel__title">Customer portal</h3>
+                <p class="muted">{portalText}</p>
+                <div class="actions">
+                    <template lwc:if={showProvision}>
+                        <lightning-button variant="brand" label="Provision portal access" icon-name="utility:user" disabled={isWorking} onclick={handleProvision}></lightning-button>
+                    </template>
+                    <template lwc:if={showReset}>
+                        <lightning-button variant="neutral" label="Send password email" icon-name="utility:key" disabled={isWorking} onclick={handleReset}></lightning-button>
+                    </template>
+                    <template lwc:if={o.canPreviewPdf}>
+                        <lightning-button variant="neutral" label="Preview confirmation PDF" icon-name="utility:download" onclick={handlePreview}></lightning-button>
+                    </template>
+                </div>
+            </article>
         </template>
         <template lwc:else>
             <p class="muted">You can view this payment but you do not have permission to manage it.</p>

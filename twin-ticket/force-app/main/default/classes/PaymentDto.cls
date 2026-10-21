@@ -40,5 +40,8 @@ public class PaymentDto {
         @AuraEnabled public Datetime paidOn;
         @AuraEnabled public Boolean canManage;
         @AuraEnabled public List<AttemptRow> attempts = new List<AttemptRow>();
+        @AuraEnabled public String portalAccess;     // NOT_PAID | NONE | ACTIVE | INACTIVE
+        @AuraEnabled public String portalUsername;
+        @AuraEnabled public Boolean canPreviewPdf;
     }
 }

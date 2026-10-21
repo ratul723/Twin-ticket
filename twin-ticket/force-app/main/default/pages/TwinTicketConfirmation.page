@@ -1,0 +1,74 @@
+<apex:page controller="ConfirmationPdfController" action="{!init}" renderAs="pdf" applyHtmlTag="false" applyBodyTag="false"
+           showHeader="false" sidebar="false" standardStylesheets="false" cache="false">
+<html>
+<head>
+<style>
+    @page { size: A4; margin: 18mm; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 12px; }
+    .brand { background-color: #3b2a8c; color: #ffffff; padding: 18px 22px; }
+    .brand h1 { margin: 0; font-size: 22px; }
+    .brand p { margin: 4px 0 0 0; font-size: 12px; }
+    h2 { font-size: 14px; color: #3b2a8c; margin: 22px 0 6px 0; border-bottom: 1px solid #ddd6fe; padding-bottom: 4px; }
+    table.facts { width: 100%; border-collapse: collapse; }
+    table.facts td { padding: 6px 4px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    table.facts td.label { width: 32%; color: #6b7280; }
+    table.facts td.value { font-weight: bold; }
+    table.total { width: 100%; margin-top: 18px; border-collapse: collapse; }
+    table.total td { background-color: #f3f0ff; padding: 14px; font-size: 16px; }
+    table.total td.amount { text-align: right; font-size: 22px; font-weight: bold; color: #3b2a8c; }
+    .paid { display: inline-block; background-color: #dcfce7; color: #166534; padding: 3px 10px; font-weight: bold; }
+    .note { margin-top: 22px; color: #6b7280; font-size: 11px; line-height: 1.5; }
+    .error { margin-top: 40px; padding: 20px; background-color: #fef2f2; color: #991b1b; font-size: 14px; }
+</style>
+</head>
+<body>
+    <apex:outputPanel rendered="{!NOT(available)}">
+        <div class="brand"><h1>Twin Ticket</h1></div>
+        <div class="error">{!message}</div>
+    </apex:outputPanel>
+
+    <apex:outputPanel rendered="{!available}">
+        <div class="brand">
+            <h1>Purchase confirmation</h1>
+            <p>Twin Ticket bulk purchase</p>
+        </div>
+
+        <h2>Purchase</h2>
+        <table class="facts">
+            <tr><td class="label">Status</td><td class="value"><span class="paid">PAID</span></td></tr>
+            <tr><td class="label">Purchase number</td><td class="value">{!purchaseNumber}</td></tr>
+            <tr><td class="label">Request reference</td><td class="value">{!reference}</td></tr>
+            <tr><td class="label">Paid on</td><td class="value">{!paidOn}</td></tr>
+            <tr><td class="label">Payment reference</td><td class="value">{!paymentReference}</td></tr>
+        </table>
+
+        <h2>Buyer</h2>
+        <table class="facts">
+            <tr><td class="label">Name</td><td class="value">{!buyerName}</td></tr>
+            <tr><td class="label">Organization</td><td class="value">{!organization}</td></tr>
+        </table>
+
+        <h2>Event</h2>
+        <table class="facts">
+            <tr><td class="label">Event</td><td class="value">{!eventName}</td></tr>
+            <tr><td class="label">Date and time</td><td class="value">{!eventWhen}</td></tr>
+            <tr><td class="label">Venue</td><td class="value">{!venue}</td></tr>
+        </table>
+
+        <h2>Tickets</h2>
+        <table class="facts">
+            <tr><td class="label">Category</td><td class="value">{!categoryName}</td></tr>
+            <tr><td class="label">Quantity</td><td class="value">{!quantity}</td></tr>
+            <tr><td class="label">Price per ticket</td><td class="value">{!unitPrice}</td></tr>
+        </table>
+
+        <table class="total"><tr><td>Total paid</td><td class="amount">{!total}</td></tr></table>
+
+        <p class="note">
+            This document confirms one bulk purchase covering the total quantity above. Individual tickets and entry codes are not part of this confirmation.
+            Please keep it for your records. Generated on {!generatedOn}.
+        </p>
+    </apex:outputPanel>
+</body>
+</html>
+</apex:page>

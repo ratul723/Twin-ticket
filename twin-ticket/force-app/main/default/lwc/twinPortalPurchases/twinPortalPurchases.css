@@ -1,0 +1,142 @@
+:host {
+  display: block;
+  background: #f6f7fb;
+  min-height: 60vh;
+}
+.hero {
+  background: linear-gradient(135deg, #0f1b3d 0%, #3b2a8c 60%, #7c3aed 100%);
+  color: #fff;
+  padding: 2.5rem 1.5rem;
+}
+.hero__inner {
+  max-width: 64rem;
+  margin: 0 auto;
+}
+.hero__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.hero__title {
+  font-size: clamp(1.7rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin: 0.4rem 0;
+}
+.hero__sub {
+  opacity: 0.92;
+}
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+.list {
+  display: grid;
+  gap: 1.1rem;
+}
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 5px solid #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 3px rgba(15, 27, 61, 0.08);
+}
+.card--ok {
+  border-left-color: #16a34a;
+}
+.card--pending {
+  border-left-color: #6366f1;
+}
+.card--warn {
+  border-left-color: #f59e0b;
+}
+.card--bad {
+  border-left-color: #dc2626;
+}
+.card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.card__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f1b3d;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.chip {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+  white-space: nowrap;
+}
+.chip--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.chip--pending {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+.chip--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+.chip--bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.facts dt {
+  color: #6b7280;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.facts dd {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.facts__total {
+  color: #3b2a8c;
+  font-size: 1.2rem;
+}
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+.help {
+  background: #fffbeb;
+  color: #92400e;
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 0.8rem;
+}
+.state {
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: #475569;
+  min-height: 6rem;
+}
+.state--error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}

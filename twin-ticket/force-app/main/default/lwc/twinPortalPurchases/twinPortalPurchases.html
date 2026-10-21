@@ -1,0 +1,54 @@
+<template>
+    <section class="hero">
+        <div class="hero__inner">
+            <p class="hero__eyebrow">Twin Ticket</p>
+            <h1 class="hero__title">My purchases</h1>
+            <p class="hero__sub">Your bulk ticket purchases and confirmations, in one secure place.</p>
+        </div>
+    </section>
+
+    <div class="page">
+        <template lwc:if={isLoading}>
+            <div class="state slds-is-relative"><lightning-spinner alternative-text="Loading your purchases" size="medium"></lightning-spinner></div>
+        </template>
+        <template lwc:elseif={errorMessage}>
+            <div class="state state--error" role="alert">{errorMessage}</div>
+        </template>
+        <template lwc:elseif={notCustomer}>
+            <div class="state">This page is for Twin Ticket customers. Please sign in with your customer account.</div>
+        </template>
+        <template lwc:elseif={isEmpty}>
+            <div class="state">You do not have any purchases yet.</div>
+        </template>
+        <template lwc:else>
+            <div class="list">
+                <template for:each={rows} for:item="p">
+                    <article key={p.id} class={p.cardClass}>
+                        <div class="card__head">
+                            <div>
+                                <h2 class="card__title">{p.eventName}</h2>
+                                <p class="muted">{p.whenLabel}<template lwc:if={p.venue}> · {p.venue}</template></p>
+                            </div>
+                            <span class={p.chipClass}>{p.statusLabel}</span>
+                        </div>
+
+                        <dl class="facts">
+                            <div><dt>Tickets</dt><dd>{p.quantity} × {p.categoryName}</dd></div>
+                            <div><dt>Price each</dt><dd>{p.unitPriceLabel}</dd></div>
+                            <div><dt>Total</dt><dd class="facts__total">{p.totalLabel}</dd></div>
+                            <div><dt>Reference</dt><dd class="mono">{p.reference}</dd></div>
+                            <template lwc:if={p.paidLabel}><div><dt>Paid on</dt><dd>{p.paidLabel}</dd></div></template>
+                        </dl>
+
+                        <template lwc:if={p.statusHelp}><p class="help">{p.statusHelp}</p></template>
+
+                        <template lwc:if={p.canDownload}>
+                            <lightning-button variant="brand" label="Download confirmation (PDF)" icon-name="utility:download"
+                                data-id={p.id} onclick={handleDownload}></lightning-button>
+                        </template>
+                    </article>
+                </template>
+            </div>
+        </template>
+    </div>
+</template>

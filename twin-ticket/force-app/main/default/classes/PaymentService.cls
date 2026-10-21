@@ -398,7 +398,11 @@ public without sharing class PaymentService {
             }
             IntegrationLogger.add('Stripe', 'PaymentVerified', 200, true, corr, 'Payment verified', String.valueOf(purchaseId));
             System.debug(LoggingLevel.INFO, LOG + 'PAID ref=' + locked.Request_Reference__c + ' oversold=' + oversold);
-            // Slice (e): enqueue portal provisioning for the Contact here, after verified payment.
+            // Verified payment => ask for portal access. A failure here must NEVER undo the payment.
+            if (!PortalProvisioningService.requestProvisioning(purchaseId)) {
+                System.debug(LoggingLevel.WARN, LOG + 'portal provisioning could not be requested for ' + locked.Request_Reference__c);
+            }
+            
             r.outcome = 'PAID';
             r.message = MSG_PAID;
             return r;
