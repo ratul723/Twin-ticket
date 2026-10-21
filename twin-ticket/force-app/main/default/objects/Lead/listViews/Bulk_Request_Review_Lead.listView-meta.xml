@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListView xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Bulk_Request_Review_Lead</fullName>
+    <filterScope>Queue</filterScope>
+    <label>Bulk Request Review</label>
+    <queue>Bulk_Request_Review</queue>
+    <sharedTo>
+        <allInternalUsers></allInternalUsers>
+    </sharedTo>
+</ListView>

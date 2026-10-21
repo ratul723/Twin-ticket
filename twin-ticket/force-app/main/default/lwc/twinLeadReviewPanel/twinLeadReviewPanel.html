@@ -1,0 +1,114 @@
+<template>
+    <template lwc:if={isLoading}>
+        <div class="panel slds-is-relative loading"><lightning-spinner alternative-text="Loading request" size="small"></lightning-spinner></div>
+    </template>
+
+    <template lwc:elseif={loadError}>
+        <div class="alert alert--error" role="alert">{loadError}</div>
+    </template>
+
+    <template lwc:elseif={d}>
+        <section class="hero">
+            <div>
+                <p class="hero__eyebrow">Bulk ticket request</p>
+                <h2 class="hero__ref">{d.reference}</h2>
+                <p class="hero__sub">{d.buyerName} · {d.organization}</p>
+            </div>
+            <span class={statusClass}>{d.status}</span>
+        </section>
+
+        <template lwc:if={hasBlockers}>
+            <div class="alert alert--warn" role="alert">
+                <strong>Cannot approve yet:</strong>
+                <ul class="alert__list">
+                    <template for:each={d.blockers} for:item="b"><li key={b}>{b}</li></template>
+                </ul>
+            </div>
+        </template>
+
+        <div class="tiles">
+            <div class="tile"><span class="tile__label">Event</span><span class="tile__value">{d.eventName}</span><span class="tile__sub">{eventWhen}</span></div>
+            <div class="tile"><span class="tile__label">Tickets</span><span class="tile__value">{d.quantity} × {d.categoryName}</span><span class="tile__sub">{unitPriceLabel} each · {d.availableNow} available now</span></div>
+            <div class="tile tile--accent"><span class="tile__label">Order total</span><span class="tile__value">{totalLabel}</span><span class="tile__sub">Calculated from the stored ticket price</span></div>
+        </div>
+
+        <div class="grid">
+            <article class="panel">
+                <h3 class="panel__title">Buyer</h3>
+                <dl class="facts">
+                    <dt>Name</dt><dd>{d.buyerName}</dd>
+                    <dt>Email</dt><dd>{d.email}</dd>
+                    <dt>Phone</dt><dd>{d.phone}</dd>
+                    <dt>Organization</dt><dd>{d.organization}</dd>
+                    <dt>Document type</dt><dd>{d.docType}</dd>
+                    <dt>ID last 4</dt><dd>{d.last4}</dd>
+                </dl>
+            </article>
+
+            <article class="panel">
+                <h3 class="panel__title">Identity documents</h3>
+                <template lwc:if={hasFiles}>
+                    <ul class="files">
+                        <template for:each={fileRows} for:item="f">
+                            <li key={f.documentId} class="files__row">
+                                <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                <span class="files__name">{f.title}<span class="muted"> · {f.extension} · {f.sizeKb} KB</span></span>
+                                <lightning-button label="Preview" variant="neutral" data-id={f.documentId} onclick={handlePreview}></lightning-button>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+                <template lwc:else><p class="muted">No documents attached.</p></template>
+            </article>
+        </div>
+
+        <article class="panel">
+            <h3 class="panel__title">Review history</h3>
+            <template lwc:if={d.notes}><pre class="notes">{d.notes}</pre></template>
+            <template lwc:else><p class="muted">No review notes yet.</p></template>
+        </article>
+
+        <template lwc:if={d.isConverted}>
+            <article class="panel panel--done">
+                <h3 class="panel__title">Converted</h3>
+                <p class="muted">This request was approved and converted. Open the new records:</p>
+                <div class="links">
+                    <lightning-button label="Account" icon-name="standard:account" data-id={d.accountId} data-object="Account" onclick={handleOpen}></lightning-button>
+                    <lightning-button label="Contact" icon-name="standard:contact" data-id={d.contactId} data-object="Contact" onclick={handleOpen}></lightning-button>
+                    <lightning-button label="Opportunity" icon-name="standard:opportunity" data-id={d.opportunityId} data-object="Opportunity" onclick={handleOpen}></lightning-button>
+                    <template lwc:if={d.purchaseId}>
+                        <lightning-button label="Purchase" icon-name="standard:orders" data-id={d.purchaseId} data-object="Purchase__c" onclick={handleOpen}></lightning-button>
+                    </template>
+                </div>
+            </article>
+        </template>
+        <template lwc:elseif={hasActions}>
+            <article class="panel panel--decision">
+                <h3 class="panel__title">Your decision</h3>
+                <lightning-radio-group name="decision" label="Action" type="button" options={actionOptions}
+                    value={decision} disabled={isSaving} onchange={handleDecision}></lightning-radio-group>
+                <template lwc:if={decision}><p class="muted help">{selectedHelp}</p></template>
+
+                <lightning-textarea label="Review notes (internal only)" required maxlength="2000" value={notes}
+                    message-when-value-missing="Notes are required for every decision." disabled={isSaving} onchange={handleNotes}></lightning-textarea>
+
+                <template lwc:if={isRequestInfo}>
+                    <lightning-textarea label="Message to the buyer (emailed)" required maxlength="1000" value={buyerMessage}
+                        message-when-value-missing="Tell the buyer exactly what you need." disabled={isSaving} onchange={handleMessage}></lightning-textarea>
+                </template>
+
+                <template lwc:if={errorText}><div class="alert alert--error" role="alert">{errorText}</div></template>
+
+                <div class="submit">
+                    <lightning-button variant={submitVariant} label={submitLabel} disabled={submitDisabled} onclick={handleSubmit}></lightning-button>
+                </div>
+            </article>
+        </template>
+        <template lwc:elseif={isFinal}>
+            <div class="alert alert--info">This request is closed. Its decision is final.</div>
+        </template>
+        <template lwc:elseif={cannotDecide}>
+            <div class="alert alert--info">You can view this request, but you do not have permission to decide on it.</div>
+        </template>
+    </template>
+</template>

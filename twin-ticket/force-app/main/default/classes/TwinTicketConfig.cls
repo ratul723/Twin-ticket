@@ -14,6 +14,29 @@ public with sharing class TwinTicketConfig {
             return null;
         }
     }
+    public static Integer paymentTokenHours() { return Math.min(720, Math.max(1, intValue('Payment_Token_Hours__c', 168))); }
+
+    /** Stripe allows 30 minutes to 24 hours. We stay inside that range even after rounding. */
+    public static Integer paymentSessionMinutes() { return Math.min(1380, Math.max(30, intValue('Payment_Session_Minutes__c', 60))); }
+
+    public static String paymentCurrency() {
+        Object v = value('Payment_Currency__c');
+        String c = v == null ? 'usd' : String.valueOf(v).trim().toLowerCase();
+        return Pattern.matches('^[a-z]{3}$', c) ? c : 'usd';
+    }
+
+    /** Feature flag. If the field is missing entirely, payments stay ON. */
+    public static Boolean paymentsEnabled() {
+        Object v = value('Payments_Enabled__c');
+        return v == null ? true : (Boolean) v;
+    }
+
+    public static String siteBaseUrl() {
+        Object v = value('Site_Base_Url__c');
+        String u = v == null ? '' : String.valueOf(v).trim();
+        while (u.endsWith('/')) { u = u.removeEnd('/'); }
+        return u;
+    }
 
     private static Integer intValue(String field, Integer fallback) {
         Object v = value(field);

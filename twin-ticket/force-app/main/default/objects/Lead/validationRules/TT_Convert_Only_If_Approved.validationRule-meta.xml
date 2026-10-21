@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TT_Convert_Only_If_Approved</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(ISCHANGED(IsConverted), IsConverted, 
+    NOT(ISPICKVAL(Verification_Status__c, &apos;Approved&apos;)))</errorConditionFormula>
+    <errorMessage>Leads can only be converted after they have been officially approved.</errorMessage>
+</ValidationRule>

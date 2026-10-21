@@ -1,0 +1,76 @@
+<template>
+    <section class="hero">
+        <div class="hero__inner">
+            <p class="hero__eyebrow">Twin Ticket</p>
+            <h1 class="hero__title">Secure payment</h1>
+            <p class="hero__sub">Your bulk ticket request was approved. Complete your payment to confirm your purchase.</p>
+        </div>
+    </section>
+
+    <div class="page">
+        <template lwc:if={isLoading}>
+            <div class="state slds-is-relative"><lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner></div>
+        </template>
+
+        <template lwc:elseif={isInvalid}>
+            <div class="state state--error" role="alert">
+                <p class="state__title">We could not open this payment link</p>
+                <p>{message}</p>
+            </div>
+        </template>
+
+        <template lwc:else>
+            <div class="layout">
+                <article class="panel">
+                    <h2 class="panel__title">Your purchase</h2>
+                    <p class="muted">Reference</p>
+                    <p class="ref">{ctx.reference}</p>
+                    <dl class="facts">
+                        <dt>Event</dt><dd>{ctx.eventName}</dd>
+                        <dt>When</dt><dd>{whenLabel}</dd>
+                        <dt>Venue</dt><dd>{ctx.venue}</dd>
+                        <dt>Tickets</dt><dd>{ctx.quantity} × {ctx.categoryName}</dd>
+                    </dl>
+                    <div class="total"><span>Total</span><strong>{amountLabel}</strong></div>
+                </article>
+
+                <article class="panel panel--action" aria-live="polite">
+                    <template lwc:if={isBusyView}>
+                        <div class="slds-is-relative state state--plain"><lightning-spinner alternative-text="Working" size="small"></lightning-spinner></div>
+                        <p class="center">{busyText}</p>
+                    </template>
+
+                    <template lwc:elseif={isPaid}>
+                        <div class="center"><lightning-icon icon-name="utility:success" variant="success" size="large"></lightning-icon></div>
+                        <h2 class="panel__title center">Payment received</h2>
+                        <p class="center">Thank you. Your purchase is confirmed. We will email you a purchase confirmation and instructions for secure portal access.</p>
+                    </template>
+
+                    <template lwc:elseif={isReview}>
+                        <h2 class="panel__title">We are checking your payment</h2>
+                        <p>{message}</p>
+                        <p class="muted">Please do not pay again. Quote your reference if you contact us.</p>
+                    </template>
+
+                    <template lwc:else>
+                        <h2 class="panel__title">Pay securely</h2>
+                        <template lwc:if={isCancelled}><div class="notice notice--info">{message}</div></template>
+                        <template lwc:if={isPending}><div class="notice notice--warn">{message}</div></template>
+                        <template lwc:if={errorText}><div class="notice notice--error" role="alert">{errorText}</div></template>
+
+                        <template lwc:if={isUnavailable}>
+                            <div class="notice notice--warn">{message}</div>
+                        </template>
+                        <template lwc:else>
+                            <p class="muted">You will be taken to Stripe's secure page. Twin Ticket never sees or stores your card details.</p>
+                            <lightning-button variant="brand" class="pay-btn" label={payLabel} icon-name="utility:lock" onclick={handlePay}></lightning-button>
+                            <template lwc:if={canRecheck}>
+                                <lightning-button variant="neutral" label="I already paid: check status" onclick={handleRecheck}></lightning-button>
+                            </template>
+                        </template>
+                    </template>
+                </article>
+            </div>
+        </template>
+    </div>
+</template>

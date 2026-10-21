@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TT_Decision_Needs_Notes</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(ISCHANGED(Verification_Status__c), 
+    NOT(ISPICKVAL(Verification_Status__c, &apos;Pending&apos;)), 
+    ISBLANK(Review_Notes__c))</errorConditionFormula>
+    <errorMessage>Review notes are required when making a decision (Approved or Rejected).</errorMessage>
+</ValidationRule>

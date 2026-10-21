@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TT_Only_Reviewers_Decide</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(ISCHANGED(Verification_Status__c), 
+    NOT($Permission.Review_Bulk_Requests))</errorConditionFormula>
+    <errorMessage>Only authorized reviewers with the required custom permission may change the verification status.</errorMessage>
+</ValidationRule>

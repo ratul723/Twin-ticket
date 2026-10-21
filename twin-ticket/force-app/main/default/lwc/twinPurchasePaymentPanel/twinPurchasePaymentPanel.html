@@ -1,0 +1,58 @@
+<template>
+    <template lwc:if={loadError}>
+        <div class="alert alert--error" role="alert">{loadError}</div>
+    </template>
+    <template lwc:elseif={o}>
+        <section class="hero">
+            <div>
+                <p class="hero__eyebrow">Payment</p>
+                <h2 class="hero__amount">{amountLabel}</h2>
+                <p class="hero__sub">{o.reference}</p>
+            </div>
+            <span class={statusClass}>{o.paymentStatus}</span>
+        </section>
+
+        <template lwc:if={o.paidOn}>
+            <p class="muted">Paid on {paidLabel}</p>
+        </template>
+
+        <template lwc:if={showLink}>
+            <div class="alert alert--warn" role="alert">
+                <strong>The email could not be sent.</strong> Copy this link and send it to the buyer yourself. It is shown only once.
+                <lightning-input class="link" label="Payment link" value={manualLink} readonly></lightning-input>
+            </div>
+        </template>
+        <template lwc:if={actionMessage}>
+            <div class="alert alert--info" role="status">{actionMessage}</div>
+        </template>
+
+        <template lwc:if={o.canManage}>
+            <div class="actions">
+                <lightning-button variant="brand" label={sendLabel} icon-name="utility:email" disabled={actionsDisabled} onclick={handleSend}></lightning-button>
+                <lightning-button variant="neutral" label="Re-verify payment" icon-name="utility:refresh" disabled={actionsDisabled} onclick={handleReverify}></lightning-button>
+            </div>
+        </template>
+        <template lwc:else>
+            <p class="muted">You can view this payment but you do not have permission to manage it.</p>
+        </template>
+
+        <article class="panel">
+            <h3 class="panel__title">Payment attempts</h3>
+            <template lwc:if={hasAttempts}>
+                <ul class="attempts">
+                    <template for:each={rows} for:item="a">
+                        <li key={a.name} class="attempts__row">
+                            <div>
+                                <p class="attempts__name">{a.name} <span class="muted">· Stripe …{a.providerRef}</span></p>
+                                <p class="muted">{a.createdLabel}<template lwc:if={a.detail}> · {a.detail}</template></p>
+                            </div>
+                            <span class="attempts__amount">{a.amountLabel}</span>
+                            <span class={a.statusClass}>{a.status}</span>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template lwc:else><p class="muted">No payment attempts yet.</p></template>
+        </article>
+    </template>
+</template>
