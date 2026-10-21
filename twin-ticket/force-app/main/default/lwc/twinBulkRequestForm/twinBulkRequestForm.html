@@ -1,0 +1,165 @@
+<template>
+    <section class="banner">
+        <div class="banner__inner">
+            <p class="banner__eyebrow">Bulk Ticket Purchase</p>
+            <template lwc:if={ev}>
+                <h1 class="banner__title">{ev.name}</h1>
+                <p class="banner__meta">{ev.whenLabel} · {ev.venueName}</p>
+            </template>
+            <template lwc:else>
+                <h1 class="banner__title">Request bulk tickets</h1>
+            </template>
+        </div>
+    </section>
+
+    <div class="page">
+        <template lwc:if={loadError}>
+            <div class="state state--error" role="alert">{loadError}</div>
+            <lightning-button label="Browse events" icon-name="utility:back" onclick={handleBrowse}></lightning-button>
+        </template>
+
+        <template lwc:elseif={isSuccess}>
+            <div class="success">
+                <div class="success__icon"><lightning-icon icon-name="utility:success" size="large" variant="success"></lightning-icon></div>
+                <h2 class="success__title">Request received</h2>
+                <p class="muted">Keep this reference number. You will need it if you contact us.</p>
+                <div class="ref" aria-live="polite">{reference}</div>
+                <lightning-button variant="neutral" label={copyLabel} icon-name="utility:copy" onclick={handleCopy}></lightning-button>
+
+                <h3 class="next__title">What happens next</h3>
+                <ol class="next">
+                    <li><strong>Review.</strong> Our team checks your details and documents.</li>
+                    <li><strong>Decision.</strong> You will hear from us if we need anything else.</li>
+                    <li><strong>Payment link.</strong> Once approved, we email you a secure payment link.</li>
+                    <li><strong>Portal access.</strong> After payment is confirmed, you can view and download your purchase confirmation.</li>
+                </ol>
+                <lightning-button variant="brand" label="Back to events" onclick={handleBrowse}></lightning-button>
+            </div>
+        </template>
+
+        <template lwc:elseif={showForm}>
+            <div class="layout">
+                <div class="main">
+                    <template lwc:if={banner}>
+                        <div class="state state--error" role="alert">{banner}</div>
+                    </template>
+
+                    <article class="panel">
+                        <h2 class="panel__title"><span class="step">1</span>Your details</h2>
+                        <div class="row">
+                            <lightning-input data-field="fullName" label="Full name" required maxlength="80" disabled={isBusy} onchange={handleChange}></lightning-input>
+                            <lightning-input data-field="email" type="email" label="Email" required maxlength="80" disabled={isBusy} onchange={handleChange}></lightning-input>
+                        </div>
+                        <div class="row">
+                            <lightning-input data-field="phone" type="tel" label="Phone" placeholder="+8801700000000" required maxlength="20" disabled={isBusy} onchange={handleChange}></lightning-input>
+                            <lightning-input data-field="organization" label="Organization (optional)" maxlength="80" disabled={isBusy} onchange={handleChange}></lightning-input>
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <h2 class="panel__title"><span class="step">2</span>Tickets</h2>
+                        <template lwc:if={noTicketsLeft}>
+                            <p class="muted">All ticket categories for this event are sold out.</p>
+                        </template>
+                        <template lwc:else>
+                            <div class="row">
+                                <lightning-combobox data-field="categoryId" label="Ticket category" options={categoryOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox>
+                                <lightning-input data-field="quantity" type="number" label="Quantity" required min={minQty} max={maxQty} step="1"
+                                    message-when-range-overflow={rangeMessage} message-when-range-underflow={rangeMessage}
+                                    field-level-help={quantityHelp} disabled={isBusy} onchange={handleChange}></lightning-input>
+                            </div>
+                        </template>
+                    </article>
+
+                    <article class="panel">
+                        <h2 class="panel__title"><span class="step">3</span>Identity verification</h2>
+                        <p class="muted">We verify every bulk request to protect buyers and organisers. Only our review team can see these details.</p>
+                        <div class="row">
+                            <lightning-combobox data-field="identityDocType" label="Document type" options={docTypeOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox>
+                            <lightning-input data-field="identityLast4" label="Last 4 characters of ID number" required minlength="4" maxlength="4" disabled={isBusy} onchange={handleChange}></lightning-input>
+                        </div>
+                    </article>
+
+                    <article class="panel">
+                        <h2 class="panel__title"><span class="step">4</span>Upload documents</h2>
+                        <p class="muted">{fileHelp}</p>
+                        <lightning-input type="file" label="Identity documents" accept={acceptAttr} multiple
+                            disabled={uploadDisabled} onchange={handleFiles}></lightning-input>
+                        <template lwc:if={fileError}><p class="field-error" role="alert">{fileError}</p></template>
+                        <template lwc:if={hasFiles}>
+                            <ul class="files">
+                                <template for:each={fileRows} for:item="f">
+                                    <li key={f.id} class="files__row">
+                                        <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                        <span class="files__name">{f.name}<span class="muted"> · {f.sizeLabel}</span></span>
+                                        <span class={f.statusClass}>{f.statusLabel}</span>
+                                        <lightning-button-icon icon-name="utility:close" variant="bare" alternative-text="Remove file"
+                                            data-id={f.id} disabled={isBusy} onclick={handleRemove}></lightning-button-icon>
+                                    </li>
+                                </template>
+                            </ul>
+                        </template>
+
+                        <!-- Honeypot: invisible to people. Bots fill it, and the server discards those requests. -->
+                        <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" oninput={handleHoneypot} />
+
+                        <lightning-input data-field="consent" type="checkbox" class="consent" required disabled={isBusy} onchange={handleChange}
+                            label="I confirm the details are correct and agree that Twin Ticket may use them to verify this request."></lightning-input>
+
+                        <div class="submit">
+                            <lightning-button variant="brand" label="Submit request" icon-name="utility:send" disabled={isBusy} onclick={handleSubmit}></lightning-button>
+                        </div>
+                    </article>
+                </div>
+
+                <aside class="side">
+                    <article class="panel panel--sticky">
+                        <h2 class="panel__title">Estimate</h2>
+                        <p class="total">{estimatedTotal}</p>
+                        <p class="muted">For information only. The final amount is calculated by us after approval.</p>
+                        <hr />
+                        <h3 class="side__title">How it works</h3>
+                        <ol class="next next--compact">
+                            <li>Submit your request</li>
+                            <li>We verify your identity</li>
+                            <li>Approved? Get a secure payment link</li>
+                            <li>Pay, then view your confirmation</li>
+                        </ol>
+                    </article>
+                </aside>
+            </div>
+
+            <template lwc:if={isBusy}>
+                <div class="overlay" role="status" aria-live="polite">
+                    <div class="overlay__box">
+                        <p class="overlay__title">{statusText}</p>
+                        <lightning-progress-bar value={progress} size="large"></lightning-progress-bar>
+                        <p class="muted">Please keep this page open.</p>
+                    </div>
+                </div>
+            </template>
+        </template>
+
+        <template lwc:elseif={isPartial}>
+            <div class="state state--error" role="alert">
+                Your request was saved (reference <strong>{reference}</strong>) but some documents did not upload. Please retry the files below.
+            </div>
+            <ul class="files">
+                <template for:each={fileRows} for:item="f">
+                    <li key={f.id} class="files__row">
+                        <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                        <span class="files__name">{f.name}<template lwc:if={f.error}><span class="field-error"> · {f.error}</span></template></span>
+                        <span class={f.statusClass}>{f.statusLabel}</span>
+                    </li>
+                </template>
+            </ul>
+            <lightning-button variant="brand" label="Retry upload" icon-name="utility:refresh" onclick={handleRetry}></lightning-button>
+        </template>
+
+        <template lwc:else>
+            <div class="state slds-is-relative">
+                <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+            </div>
+        </template>
+    </div>
+</template>

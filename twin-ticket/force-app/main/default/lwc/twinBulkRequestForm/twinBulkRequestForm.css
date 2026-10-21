@@ -1,0 +1,242 @@
+:host {
+  display: block;
+  background: #f6f7fb;
+}
+.banner {
+  background: linear-gradient(135deg, #0f1b3d 0%, #3b2a8c 60%, #7c3aed 100%);
+  color: #fff;
+  padding: 2.5rem 1.5rem;
+}
+.banner__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+.banner__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.banner__title {
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
+  font-weight: 700;
+  margin: 0.4rem 0;
+}
+.banner__meta {
+  opacity: 0.9;
+}
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem;
+  position: relative;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+.panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 27, 61, 0.08);
+}
+.panel--sticky {
+  position: sticky;
+  top: 1rem;
+}
+.panel__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f1b3d;
+  margin-bottom: 0.8rem;
+}
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #7c3aed, #3b2a8c);
+  color: #fff;
+  font-size: 0.85rem;
+}
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.muted {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+}
+.field-error {
+  color: #b91c1c;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+.consent {
+  display: block;
+  margin-top: 1rem;
+}
+.submit {
+  margin-top: 1.25rem;
+}
+.total {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #3b2a8c;
+  margin: 0.25rem 0 0.5rem;
+}
+.side__title {
+  font-weight: 700;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.files {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  border-top: 1px solid #eef0f4;
+}
+.files__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #eef0f4;
+}
+.files__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: #e5e7eb;
+  color: #374151;
+}
+.chip--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+.chip--bad {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.state {
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  color: #475569;
+  min-height: 5rem;
+  margin-bottom: 1rem;
+}
+.state--error {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 27, 61, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  padding: 1rem;
+}
+.overlay__box {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem 2rem;
+  width: min(100%, 26rem);
+  text-align: center;
+}
+.overlay__title {
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+}
+
+.success {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  max-width: 40rem;
+  margin: 0 auto;
+  box-shadow: 0 10px 24px rgba(15, 27, 61, 0.1);
+}
+.success__title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f1b3d;
+  margin: 0.5rem 0;
+}
+.ref {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: clamp(1.3rem, 4vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: #f3f0ff;
+  color: #3b2a8c;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+}
+.next__title {
+  font-weight: 700;
+  margin: 1.5rem 0 0.5rem;
+  text-align: left;
+}
+.next {
+  text-align: left;
+  padding-left: 1.2rem;
+  margin-bottom: 1.25rem;
+  color: #374151;
+  line-height: 1.7;
+}
+.next--compact {
+  margin-bottom: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 52rem) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .panel--sticky {
+    position: static;
+  }
+}
