@@ -30,16 +30,30 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
 
     @wire(CurrentPageReference)
     setPageRef(ref) {
-        this.eventId = ref && ref.state ? ref.state.c__eventId : undefined;
-        if (ref && !this.eventId) {
+        if (!ref) { return; }
+        const id = TwinBulkRequestForm.readEventId(ref);
+        if (id) {
+            // Only ever set, never cleared: LWR can re-fire this wire with an empty state after the page loads.
+            if (id !== this.eventId) { this.eventId = id; this.loadError = undefined; }
+        } else if (!this.eventId) {
             this.loadError = 'No event was selected. Please choose an event first.';
         }
+    }
+    static readEventId(ref) {
+        const s = (ref && ref.state) || {};
+        let id = s.c__eventId || s.eventId;
+        if (!id && typeof window !== 'undefined' && window.location) {
+            const q = new URLSearchParams(window.location.search);
+            id = q.get('c__eventId') || q.get('eventId');
+        }
+        return id ? String(id).trim() : undefined;
     }
 
     @wire(getEventDetail, { eventId: '$eventId' })
     wiredEvent({ data, error }) {
         if (data) {
             this.ev = decorateEvent(data);
+            this.loadError = undefined;
         } else if (error) {
             this.loadError = 'This event is not available for bulk requests.';
         }
@@ -96,11 +110,36 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
     }
 
     // ---------- input handling ----------
+    // Bound to the comboboxes so the selection survives re-renders.
+    get categoryId() { return this.form.categoryId; }
+    get identityDocType() { return this.form.identityDocType; }
+
     handleChange(event) {
-        const el = event.target;
-        const value = el.type === 'checkbox' ? el.checked : event.detail.value;
-        this.form = { ...this.form, [el.dataset.field]: value };
+        // currentTarget is always the element the handler is on (target can be retargeted inside base components).
+        const el = event.currentTarget || event.target;
+        const field = el.dataset ? el.dataset.field : undefined;
+        if (!field) { return; }
+        let value;
+        if (el.type === 'checkbox') {
+            value = event.detail && event.detail.checked !== undefined ? event.detail.checked : el.checked;
+        } else {
+            value = event.detail && event.detail.value !== undefined ? event.detail.value : el.value;
+        }
+        this.form = { ...this.form, [field]: value };
         if (el.setCustomValidity) { el.setCustomValidity(''); }
+        if (this.banner) { this.banner = undefined; }
+    }
+
+    /** The value currently shown in a control: a safety net if a change event was missed. */
+    controlValue(field) {
+        const el = this.template.querySelector(`[data-field="${field}"]`);
+        if (!el) { return undefined; }
+        return el.type === 'checkbox' ? el.checked : el.value;
+    }
+
+    pick(field) {
+        const v = this.form[field];
+        return v !== undefined && v !== null && v !== '' ? v : this.controlValue(field);
     }
 
     handleHoneypot(event) {
@@ -142,6 +181,8 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
     // ---------- client checks (for convenience only: the server re-validates everything) ----------
     validateClient() {
         const controls = Array.from(this.template.querySelectorAll('lightning-input, lightning-combobox'));
+        // Remove messages left by the previous server response, so they can't block a corrected submit.
+        controls.forEach((el) => { if (el.setCustomValidity) { el.setCustomValidity(''); } });
         const allValid = controls.reduce((ok, el) => (el.reportValidity ? el.reportValidity() && ok : ok), true);
         if (this.files.length === 0) {
             this.fileError = 'Please add at least one identity document.';
@@ -151,12 +192,17 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
     }
 
     buildInput() {
-        const f = this.form;
+        const quantity = this.pick('quantity');
         return {
-            fullName: f.fullName, email: f.email, phone: f.phone, organization: f.organization,
-            eventId: this.eventId, categoryId: f.categoryId, quantity: f.quantity ? Number(f.quantity) : null,
-            identityDocType: f.identityDocType, identityLast4: f.identityLast4, consent: f.consent === true,
-            website: f.website
+            fullName: this.pick('fullName'), email: this.pick('email'), phone: this.pick('phone'),
+            organization: this.pick('organization'),
+            // The loaded event's own id is the most reliable source (it is what the header is showing).
+            eventId: (this.ev && this.ev.id) || this.eventId,
+            categoryId: this.pick('categoryId'),
+            quantity: quantity ? Number(quantity) : null,
+            identityDocType: this.pick('identityDocType'), identityLast4: this.pick('identityLast4'),
+            consent: this.pick('consent') === true,
+            website: this.form.website
         };
     }
 

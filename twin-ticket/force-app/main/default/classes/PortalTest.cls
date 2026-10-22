@@ -90,7 +90,7 @@ private class PortalTest {
         }
         shares.add(new Purchase__Share(ParentId = [SELECT Id FROM Purchase__c WHERE Request_Reference__c = 'TT-20261021-PTLB01'].Id,
             UserOrGroupId = userByAlias.get('ptpb'), AccessLevel = 'Read', RowCause = 'Manual'));
-        insert shares;
+        Database.insert(shares, false);
     }
 
     // ---------- helpers ----------

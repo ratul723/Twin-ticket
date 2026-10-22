@@ -43,7 +43,7 @@ private class BulkRequestTest {
     }
     private static BulkRequestDto.SubmitResult submitOk() {
         BulkRequestDto.SubmitResult r = BulkRequestService.submit(validInput());
-        Assert.isTrue(r.success, 'precondition: submit should succeed');
+        Assert.isTrue(r.success, 'precondition: ' + r.message + ' ' + JSON.serialize(r.fieldErrors));
         return r;
     }
     private static Boolean hasError(BulkRequestDto.SubmitResult r, String field) {

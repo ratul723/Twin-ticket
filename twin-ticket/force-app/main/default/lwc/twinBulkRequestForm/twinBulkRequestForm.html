@@ -84,7 +84,7 @@
                         <h2 class="panel__title"><span class="step">3</span>Identity verification</h2>
                         <p class="muted">We verify every bulk request to protect buyers and organisers. Only our review team can see these details.</p>
                         <div class="row">
-                            <lightning-combobox data-field="identityDocType" label="Document type" options={docTypeOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox>
+                            <lightning-combobox data-field="identityDocType" label="Document type" value={identityDocType} options={docTypeOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox>
                             <lightning-input data-field="identityLast4" label="Last 4 characters of ID number" required minlength="4" maxlength="4" disabled={isBusy} onchange={handleChange}></lightning-input>
                         </div>
                     </article>

@@ -75,6 +75,12 @@ public without sharing class BulkRequestService {
             addError(errs, 'organization', 'Organization name must be 80 characters or fewer.');
         }
         String docType = clean(input.identityDocType);
+        System.debug(LoggingLevel.WARN, LOG + 'eventId=[' + input.eventId + '] categoryId=[' + input.categoryId + ']');
+        System.debug(LoggingLevel.WARN, LOG + 'docType received=[' + docType + '] valid=' + isValidDocType(docType)
+            + ' options=' + JSON.serialize(docTypeOptions()));                 // ← ADD
+        if (!isValidDocType(docType)) {
+            addError(errs, 'identityDocType', 'Please choose a document type.');
+        }
         if (!isValidDocType(docType)) {
             addError(errs, 'identityDocType', 'Please choose a document type.');
         }

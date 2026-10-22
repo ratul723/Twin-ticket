@@ -126,6 +126,42 @@ private class PaymentTest {
     }
     private static String purchaseStatus(Id id) { return [SELECT Payment_Status__c FROM Purchase__c WHERE Id = :id].Payment_Status__c; }
 
+    /** One paid-but-wrong session per test (a callout is only allowed before any DML in the same test). */
+    private static void assertNeedsReview(String suffix, Long amount, String cur, String refOverride, String pi) {
+        cfg();
+        Purchase__c p = makePurchase(suffix, 20);
+        String t = issue(p);
+        Ticket_Payment__c a = attempt(p, SID1, 'Created');
+        StripeMock m = mock();
+        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200,
+            session(SID1, 'complete', 'paid', amount, cur, refOverride == null ? p.Request_Reference__c : refOverride, pi));
+        Test.startTest();
+        PaymentDto.VerifyResult r = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Test.stopTest();
+        Assert.areEqual('NEEDS_REVIEW', r.outcome, r.message);
+        Assert.areEqual('Failed', reload(a.Id).Status__c);
+        Assert.isTrue(reload(a.Id).Status_Detail__c.contains('Integrity check failed'));
+        Assert.areEqual('Failed', purchaseStatus(p.Id));
+        Assert.areEqual(0, [SELECT Sold_Quantity__c FROM Ticket_Category__c LIMIT 1].Sold_Quantity__c, 'nothing counted as sold');
+    }
+
+    /** Verifies one session in one test and checks how it was recorded. */
+    private static void assertRecorded(String suffix, String status, String payStatus, String pi,
+                                       String expectedOutcome, String expectedAttempt, String expectedPurchase) {
+        cfg();
+        Purchase__c p = makePurchase(suffix, 20);
+        String t = issue(p);
+        Ticket_Payment__c a = attempt(p, SID1, 'Created');
+        StripeMock m = mock();
+        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, status, payStatus, 100000L, 'usd', p.Request_Reference__c, pi));
+        Test.startTest();
+        PaymentDto.VerifyResult r = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Test.stopTest();
+        Assert.areEqual(expectedOutcome, r.outcome, r.message);
+        Assert.areEqual(expectedAttempt, reload(a.Id).Status__c);
+        if (expectedPurchase != null) { Assert.areEqual(expectedPurchase, purchaseStatus(p.Id)); }
+    }
+
     // ---------- payment link ----------
     @IsTest
     static void issuedLinkIsHashedExpiresAndOldTokensStopWorking() {
@@ -197,10 +233,12 @@ private class PaymentTest {
         StripeMock m = mock();
         m.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
 
+        Test.startTest();
         PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
-        Assert.isTrue(r.success, r.message);
-        Assert.areEqual('https://checkout.stripe.com/c/pay/' + SID1, r.checkoutUrl);
+        Test.stopTest();
 
+        Assert.isTrue(r.success, 'start failed: ' + r.message);
+        Assert.areEqual('https://checkout.stripe.com/c/pay/' + SID1, r.checkoutUrl);
         HttpRequest req = m.calls[0];
         String body = req.getBody();
         Assert.isTrue(body.contains('unit_amount%5D=5000'), 'unit price in cents comes from stored data');
@@ -225,14 +263,17 @@ private class PaymentTest {
         cfg();
         Purchase__c p = makePurchase('AF2', 20);
         String t = issue(p);
+        attempt(p, SID1, 'Created');                      // what the first start left behind
         StripeMock m = mock();
-        m.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
-        PaymentService.startPayment(p.Request_Reference__c, t);
+
+        Test.startTest();
         PaymentDto.StartResult again = PaymentService.startPayment(p.Request_Reference__c, t);
-        Assert.isTrue(again.success);
+        Test.stopTest();
+
+        Assert.isTrue(again.success, 'start failed: ' + again.message);
         Assert.areEqual('https://checkout.stripe.com/c/pay/' + SID1, again.checkoutUrl);
-        Assert.areEqual(1, m.count('POST /v1/checkout/sessions'), 'only one session was ever created');
+        Assert.areEqual(0, m.count('POST /v1/checkout/sessions'), 'no second session is created');
         Assert.areEqual(1, [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id]);
     }
 
@@ -245,8 +286,12 @@ private class PaymentTest {
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'expired', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('POST /v1/checkout/sessions', 200, session(SID2, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
+
+        Test.startTest();
         PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
-        Assert.isTrue(r.success, r.message);
+        Test.stopTest();
+
+        Assert.isTrue(r.success, 'start failed: ' + r.message);
         Assert.areEqual('Cancelled', reload(first.Id).Status__c);
         Assert.areEqual(2, [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id]);
         Assert.areEqual('TT-' + p.Id + '-2', m.calls[1].getHeader('Idempotency-Key'));
@@ -262,7 +307,12 @@ private class PaymentTest {
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'open', 'unpaid', 90000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('POST /v1/checkout/sessions/' + SID1 + '/expire', 200, session(SID1, 'expired', 'unpaid', 90000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('POST /v1/checkout/sessions', 200, session(SID2, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
-        Assert.isTrue(PaymentService.startPayment(p.Request_Reference__c, t).success);
+
+        Test.startTest();
+        PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
+        Test.stopTest();
+
+        Assert.isTrue(r.success, 'start failed: ' + r.message);
         Assert.areEqual(1, m.count('POST /v1/checkout/sessions/' + SID1 + '/expire'));
         Assert.areEqual('Cancelled', reload(first.Id).Status__c);
     }
@@ -275,9 +325,13 @@ private class PaymentTest {
         attempt(p, SID1, 'Created');
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_test_paid1'));
+
+        Test.startTest();
         PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
+        Test.stopTest();
+
         Assert.isFalse(r.success);
-        Assert.isTrue(r.alreadyPaid);
+        Assert.isTrue(r.alreadyPaid, r.message);
         Assert.areEqual('Paid', purchaseStatus(p.Id));
         Assert.areEqual(0, m.count('POST /v1/checkout/sessions'));
     }
@@ -315,30 +369,54 @@ private class PaymentTest {
     }
 
     @IsTest
-    static void stripeFailuresAreRetriedOnceAndShownSafely() {
+    static void stripeServerErrorsAreRetriedOnceAndShownSafely() {
         cfg();
         Purchase__c p = makePurchase('AN2', 20);
         String t = issue(p);
         StripeMock m = mock();
         m.addResponse('POST /v1/checkout/sessions', 500, '{"error":{"type":"api_error"}}');
+
+        Test.startTest();
         PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
+        Test.stopTest();
+
         Assert.isFalse(r.success);
         Assert.areEqual(PaymentService.MSG_UNAVAILABLE, r.message);
         Assert.areEqual(2, m.count('POST /v1/checkout/sessions'), 'one automatic retry');
         Assert.areEqual(0, [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id]);
         Assert.isTrue([SELECT COUNT() FROM Integration_Log__c WHERE Outcome__c = 'Failure'] >= 1);
+    }
 
-        StripeMock m2 = mock();                                     // network failure on the first call only
-        m2.transportFailures = 1;
-        m2.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
-        Assert.isTrue(PaymentService.startPayment(p.Request_Reference__c, t).success, 'the retry succeeds');
-        Assert.areEqual(2, m2.calls.size());
+    @IsTest
+    static void aNetworkFailureIsRetriedAndTheRetrySucceeds() {
+        cfg();
+        Purchase__c p = makePurchase('AN3', 20);
+        String t = issue(p);
+        StripeMock m = mock();
+        m.transportFailures = 1;                                    // network failure on the first call only
+        m.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
 
+        Test.startTest();
+        PaymentDto.StartResult r = PaymentService.startPayment(p.Request_Reference__c, t);
+        Test.stopTest();
+
+        Assert.isTrue(r.success, 'the retry succeeds: ' + r.message);
+        Assert.areEqual(2, m.calls.size());
+    }
+
+    @IsTest
+    static void anIdempotencyConflictShowsBusyAndLogsNoSecrets() {
+        cfg();
         Purchase__c p2 = makePurchase('AP2', 20);
         String t2 = issue(p2);
         StripeMock m3 = mock();
         m3.addResponse('POST /v1/checkout/sessions', 400, '{"error":{"type":"idempotency_error","code":"idempotency_key_in_use"}}');
-        Assert.areEqual(PaymentService.MSG_BUSY, PaymentService.startPayment(p2.Request_Reference__c, t2).message);
+
+        Test.startTest();
+        PaymentDto.StartResult r = PaymentService.startPayment(p2.Request_Reference__c, t2);
+        Test.stopTest();
+
+        Assert.areEqual(PaymentService.MSG_BUSY, r.message);
         Integration_Log__c fail = [SELECT Message__c FROM Integration_Log__c WHERE Message__c LIKE '%idempotency_error%' LIMIT 1];
         Assert.isFalse(fail.Message__c.containsIgnoreCase('sk_'));
     }
@@ -351,7 +429,9 @@ private class PaymentTest {
         attempt(p, SID1, 'Created');
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 503, '{}');
+        Test.startTest();
         Assert.isFalse(PaymentService.startPayment(p.Request_Reference__c, t).success);
+        Test.stopTest();
         Assert.areEqual(0, m.count('POST /v1/checkout/sessions'));
     }
 
@@ -361,14 +441,18 @@ private class PaymentTest {
         cfg();
         Purchase__c p = makePurchase('AR2', 20);
         String t = issue(p);
+        Ticket_Payment__c a = attempt(p, SID1, 'Created');         // the session the buyer was sent to
         StripeMock m = mock();
-        m.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_test_one'));
-        PaymentService.startPayment(p.Request_Reference__c, t);
 
+        Test.startTest();
         PaymentDto.VerifyResult r1 = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Integer getsBefore = m.count('GET /v1/checkout/sessions/' + SID1);
+        // Refresh, second tab, replay: the attempt is Completed, so no callout is made.
+        PaymentDto.VerifyResult r2 = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Test.stopTest();
+
         Assert.areEqual('PAID', r1.outcome, r1.message);
-        Ticket_Payment__c a = [SELECT Id FROM Ticket_Payment__c WHERE Purchase__c = :p.Id];
         Ticket_Payment__c row = reload(a.Id);
         Assert.areEqual('Completed', row.Status__c);
         Assert.areEqual('pi_test_one', row.Capture_Id__c);
@@ -377,10 +461,7 @@ private class PaymentTest {
         Assert.areEqual('Paid', paid.Payment_Status__c);
         Assert.isNotNull(paid.Paid_On__c);
         Assert.areEqual('Closed Won', [SELECT StageName FROM Opportunity WHERE Id = :p.Opportunity__c].StageName);
-        Assert.areEqual(20, [SELECT Sold_Quantity__c FROM Ticket_Category__c WHERE Id = :p.Ticket_Category__c].Sold_Quantity__c);
 
-        Integer getsBefore = m.count('GET /v1/checkout/sessions/' + SID1);
-        PaymentDto.VerifyResult r2 = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);   // refresh, second tab, replay
         Assert.areEqual('PAID', r2.outcome);
         Assert.areEqual(getsBefore, m.count('GET /v1/checkout/sessions/' + SID1), 'no callout needed the second time');
         Assert.areEqual(20, [SELECT Sold_Quantity__c FROM Ticket_Category__c WHERE Id = :p.Ticket_Category__c].Sold_Quantity__c, 'tickets are not counted twice');
@@ -407,63 +488,33 @@ private class PaymentTest {
     }
 
     @IsTest
-    static void paidButMismatchedSessionsAreNeverMarkedPaid() {
-        cfg();
-        Map<String, String> bad = new Map<String, String>();
-        Purchase__c a = makePurchase('AU2', 20);
-        Purchase__c b = makePurchase('AV2', 20);
-        Purchase__c c = makePurchase('AW2', 20);
-        Purchase__c d = makePurchase('AX2', 20);
-        String ta = issue(a);
-        String tb = issue(b);
-        String tc = issue(c);
-        String td = issue(d);
-        Ticket_Payment__c pa = attempt(a, SID1, 'Created');
-        Ticket_Payment__c pb = attempt(b, SID2, 'Created');
-        Ticket_Payment__c pc = attempt(c, SID3, 'Created');
-        Ticket_Payment__c pd = attempt(d, 'cs_test_dddddddddd04', 'Created');
-        StripeMock m = mock();
-        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100L, 'usd', a.Request_Reference__c, 'pi_1'));                 // amount
-        m.addResponse('GET /v1/checkout/sessions/' + SID2, 200, session(SID2, 'complete', 'paid', 100000L, 'eur', b.Request_Reference__c, 'pi_2'));              // currency
-        m.addResponse('GET /v1/checkout/sessions/' + SID3, 200, session(SID3, 'complete', 'paid', 100000L, 'usd', 'TT-20261021-OTHER2', 'pi_3'));                // reference
-        m.addResponse('GET /v1/checkout/sessions/cs_test_dddddddddd04', 200, session('cs_test_dddddddddd04', 'complete', 'paid', 100000L, 'usd', d.Request_Reference__c, null)); // no payment id
-
-        Assert.areEqual('NEEDS_REVIEW', PaymentService.verifyPayment(a.Request_Reference__c, ta, SID1).outcome);
-        Assert.areEqual('NEEDS_REVIEW', PaymentService.verifyPayment(b.Request_Reference__c, tb, SID2).outcome);
-        Assert.areEqual('NEEDS_REVIEW', PaymentService.verifyPayment(c.Request_Reference__c, tc, SID3).outcome);
-        Assert.areEqual('NEEDS_REVIEW', PaymentService.verifyPayment(d.Request_Reference__c, td, 'cs_test_dddddddddd04').outcome);
-        for (Ticket_Payment__c t : new List<Ticket_Payment__c>{ pa, pb, pc, pd }) {
-            Assert.areEqual('Failed', reload(t.Id).Status__c);
-            Assert.isTrue(reload(t.Id).Status_Detail__c.contains('Integrity check failed'));
-        }
-        for (Purchase__c p : new List<Purchase__c>{ a, b, c, d }) { Assert.areEqual('Failed', purchaseStatus(p.Id)); }
-        Assert.areEqual(0, [SELECT Sold_Quantity__c FROM Ticket_Category__c LIMIT 1].Sold_Quantity__c, 'nothing counted as sold');
+    static void paidSessionWithTheWrongAmountNeedsReview() {
+        assertNeedsReview('AU2', 100L, 'usd', null, 'pi_1');
+    }
+    @IsTest
+    static void paidSessionWithTheWrongCurrencyNeedsReview() {
+        assertNeedsReview('AV2', 100000L, 'eur', null, 'pi_2');
+    }
+    @IsTest
+    static void paidSessionWithAnotherReferenceNeedsReview() {
+        assertNeedsReview('AW2', 100000L, 'usd', 'TT-20261021-OTHER2', 'pi_3');
+    }
+    @IsTest
+    static void paidSessionWithoutAPaymentIdNeedsReview() {
+        assertNeedsReview('AX2', 100000L, 'usd', null, null);
     }
 
     @IsTest
-    static void pendingExpiredAndUnpaidCompleteSessionsAreRecordedHonestly() {
-        cfg();
-        Purchase__c open = makePurchase('AY2', 20);
-        Purchase__c expired = makePurchase('AZ2', 20);
-        Purchase__c unpaid = makePurchase('BA2', 20);
-        String t1 = issue(open);
-        String t2 = issue(expired);
-        String t3 = issue(unpaid);
-        Ticket_Payment__c a1 = attempt(open, SID1, 'Created');
-        Ticket_Payment__c a2 = attempt(expired, SID2, 'Created');
-        Ticket_Payment__c a3 = attempt(unpaid, SID3, 'Created');
-        StripeMock m = mock();
-        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', open.Request_Reference__c, null));
-        m.addResponse('GET /v1/checkout/sessions/' + SID2, 200, session(SID2, 'expired', 'unpaid', 100000L, 'usd', expired.Request_Reference__c, null));
-        m.addResponse('GET /v1/checkout/sessions/' + SID3, 200, session(SID3, 'complete', 'unpaid', 100000L, 'usd', unpaid.Request_Reference__c, 'pi_x'));
-        Assert.areEqual('PENDING', PaymentService.verifyPayment(open.Request_Reference__c, t1, SID1).outcome);
-        Assert.areEqual('CANCELLED', PaymentService.verifyPayment(expired.Request_Reference__c, t2, SID2).outcome);
-        Assert.areEqual('PENDING', PaymentService.verifyPayment(unpaid.Request_Reference__c, t3, SID3).outcome);
-        Assert.areEqual('Pending', reload(a1.Id).Status__c);
-        Assert.areEqual('Pending', purchaseStatus(open.Id));
-        Assert.areEqual('Cancelled', reload(a2.Id).Status__c);
-        Assert.areEqual('Cancelled', purchaseStatus(expired.Id));
-        Assert.areEqual('Pending', reload(a3.Id).Status__c);
+    static void anOpenSessionIsRecordedAsPending() {
+        assertRecorded('AY2', 'open', 'unpaid', null, 'PENDING', 'Pending', 'Pending');
+    }
+    @IsTest
+    static void anExpiredSessionIsRecordedAsCancelled() {
+        assertRecorded('AZ2', 'expired', 'unpaid', null, 'CANCELLED', 'Cancelled', 'Cancelled');
+    }
+    @IsTest
+    static void aCompleteButUnpaidSessionIsRecordedAsPending() {
+        assertRecorded('BA2', 'complete', 'unpaid', 'pi_x', 'PENDING', 'Pending', null);
     }
 
     @IsTest
@@ -474,7 +525,9 @@ private class PaymentTest {
         Ticket_Payment__c a = attempt(p, SID1, 'Created');
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 503, '{}');
+        Test.startTest();
         PaymentDto.VerifyResult r = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Test.stopTest();
         Assert.areEqual('PENDING', r.outcome);
         Assert.areEqual('Created', reload(a.Id).Status__c);
         Assert.areEqual('Awaiting Payment', purchaseStatus(p.Id));
@@ -485,18 +538,23 @@ private class PaymentTest {
         cfg();
         Purchase__c p = makePurchase('BC2', 20);
         String t = issue(p);
-        Ticket_Payment__c first = attempt(p, SID1, 'Created');
+        // State after the first session was verified as paid.
+        Ticket_Payment__c first = attempt(p, SID1, 'Completed');
         Ticket_Payment__c second = attempt(p, SID2, 'Created');
+        update new Purchase__c(Id = p.Id, Payment_Status__c = 'Paid', Paid_On__c = Datetime.now());
+        update new Ticket_Category__c(Id = p.Ticket_Category__c, Sold_Quantity__c = 20);
         StripeMock m = mock();
-        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_first'));
         m.addResponse('GET /v1/checkout/sessions/' + SID2, 200, session(SID2, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_second'));
-        Assert.areEqual('PAID', PaymentService.verifyPayment(p.Request_Reference__c, t, SID1).outcome);
+
+        Test.startTest();
         PaymentDto.VerifyResult dup = PaymentService.verifyPayment(p.Request_Reference__c, t, SID2);
-        Assert.areEqual('DUPLICATE', dup.outcome);
+        Test.stopTest();
+
+        Assert.areEqual('DUPLICATE', dup.outcome, dup.message);
         Assert.areEqual('Failed', reload(second.Id).Status__c);
         Assert.isTrue(reload(second.Id).Status_Detail__c.contains('Refund'));
         Assert.areEqual('Completed', reload(first.Id).Status__c);
-        Assert.areEqual(20, [SELECT Sold_Quantity__c FROM Ticket_Category__c LIMIT 1].Sold_Quantity__c);
+        Assert.areEqual(20, [SELECT Sold_Quantity__c FROM Ticket_Category__c LIMIT 1].Sold_Quantity__c, 'not counted twice');
         Assert.areEqual('Paid', purchaseStatus(p.Id));
     }
 
@@ -509,7 +567,12 @@ private class PaymentTest {
         update new Ticket_Category__c(Id = p.Ticket_Category__c, Sold_Quantity__c = 290);
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_over'));
-        Assert.areEqual('PAID', PaymentService.verifyPayment(p.Request_Reference__c, t, SID1).outcome);
+
+        Test.startTest();
+        PaymentDto.VerifyResult r = PaymentService.verifyPayment(p.Request_Reference__c, t, SID1);
+        Test.stopTest();
+
+        Assert.areEqual('PAID', r.outcome, r.message);
         Assert.isTrue(reload(a.Id).Status_Detail__c.contains('oversold'));
         Assert.areEqual(1, [SELECT COUNT() FROM Integration_Log__c WHERE Operation__c = 'OversoldAlert']);
     }
@@ -524,12 +587,18 @@ private class PaymentTest {
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('POST /v1/checkout/sessions/' + SID1 + '/expire', 200, session(SID1, 'expired', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
+
+        Test.startTest();
         PaymentDto.VerifyResult r = PaymentService.cancelAttempt(p.Request_Reference__c, t);
-        Assert.areEqual('CANCELLED', r.outcome);
+        // Nothing is open any more, so the second cancel makes no callout.
+        PaymentDto.VerifyResult again = PaymentService.cancelAttempt(p.Request_Reference__c, t);
+        Test.stopTest();
+
+        Assert.areEqual('CANCELLED', r.outcome, r.message);
         Assert.areEqual(1, m.count('POST /v1/checkout/sessions/' + SID1 + '/expire'));
         Assert.areEqual('Cancelled', reload(a.Id).Status__c);
         Assert.areEqual('Cancelled', purchaseStatus(p.Id));
-        Assert.areEqual('CANCELLED', PaymentService.cancelAttempt(p.Request_Reference__c, t).outcome, 'nothing left to cancel');
+        Assert.areEqual('CANCELLED', again.outcome, 'nothing left to cancel');
     }
 
     @IsTest
@@ -540,7 +609,12 @@ private class PaymentTest {
         attempt(p, SID1, 'Created');
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_late'));
-        Assert.areEqual('PAID', PaymentService.cancelAttempt(p.Request_Reference__c, t).outcome);
+
+        Test.startTest();
+        PaymentDto.VerifyResult r = PaymentService.cancelAttempt(p.Request_Reference__c, t);
+        Test.stopTest();
+
+        Assert.areEqual('PAID', r.outcome, r.message);
         Assert.areEqual('Paid', purchaseStatus(p.Id));
         Assert.areEqual(0, m.count('POST /v1/checkout/sessions/' + SID1 + '/expire'));
     }
@@ -554,7 +628,9 @@ private class PaymentTest {
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
         m.addResponse('POST /v1/checkout/sessions/' + SID1 + '/expire', 400, '{"error":{"type":"invalid_request_error"}}');
+        Test.startTest();
         Assert.isFalse(PaymentService.cancelAttempt(p.Request_Reference__c, t).success);
+        Test.stopTest();
         Assert.areEqual('Created', reload(a.Id).Status__c, 'we do not claim it is cancelled if it is not');
     }
 
@@ -566,28 +642,53 @@ private class PaymentTest {
         Ticket_Payment__c a = attempt(p, SID1, 'Created');
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_missed'));
-        Assert.areEqual('PAID', PaymentService.reverifyLatest(p.Id).outcome);
+
+        Test.startTest();
+        PaymentDto.VerifyResult r = PaymentService.reverifyLatest(p.Id);
+        PaymentDto.VerifyResult again = PaymentService.reverifyLatest(p.Id);      // no open attempt left: no callout
+        PaymentDto.VerifyResult unknown = PaymentService.reverifyLatest(UserInfo.getUserId());
+        Test.stopTest();
+
+        Assert.areEqual('PAID', r.outcome, r.message);
         Assert.areEqual('Completed', reload(a.Id).Status__c);
-        Assert.areEqual('PAID', PaymentService.reverifyLatest(p.Id).outcome, 'already paid');
-        Assert.isFalse(PaymentService.reverifyLatest(UserInfo.getUserId()).success, 'unknown purchase');
+        Assert.areEqual('PAID', again.outcome, 'already paid');
+        Assert.isFalse(unknown.success, 'unknown purchase');
     }
 
     // ---------- controllers ----------
     @IsTest
-    static void guestControllerReturnsSafeResultsAndHidesUnexpectedErrors() {
+    static void guestControllerStartsAPaymentWithAValidLink() {
         cfg();
         Purchase__c p = makePurchase('BJ2', 20);
         String t = issue(p);
         StripeMock m = mock();
         m.addResponse('POST /v1/checkout/sessions', 200, session(SID1, 'open', 'unpaid', 100000L, 'usd', p.Request_Reference__c, null));
-        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_ctl'));
         Assert.isTrue(PaymentPageController.getContext(p.Request_Reference__c, t).valid);
         PaymentDto.Context bad = PaymentPageController.getContext(p.Request_Reference__c, 'nope');
         Assert.isFalse(bad.valid);
         Assert.areEqual(PaymentService.MSG_INVALID_LINK, bad.message);
-        Assert.isTrue(PaymentPageController.startPayment(p.Request_Reference__c, t).success);
-        Assert.areEqual('PAID', PaymentPageController.verifyPayment(p.Request_Reference__c, t, SID1).outcome);
-        Assert.areEqual('PAID', PaymentPageController.cancelAttempt(p.Request_Reference__c, t).outcome);
+
+        Test.startTest();
+        PaymentDto.StartResult r = PaymentPageController.startPayment(p.Request_Reference__c, t);
+        Test.stopTest();
+        Assert.isTrue(r.success, 'start failed: ' + r.message);
+    }
+
+    @IsTest
+    static void guestControllerVerifiesAndHidesUnexpectedErrors() {
+        cfg();
+        Purchase__c p = makePurchase('BJ3', 20);
+        String t = issue(p);
+        attempt(p, SID1, 'Created');
+        StripeMock m = mock();
+        m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_ctl'));
+
+        Test.startTest();
+        PaymentDto.VerifyResult v = PaymentPageController.verifyPayment(p.Request_Reference__c, t, SID1);
+        PaymentDto.VerifyResult c = PaymentPageController.cancelAttempt(p.Request_Reference__c, t);   // already paid: no callout
+        Test.stopTest();
+        Assert.areEqual('PAID', v.outcome, v.message);
+        Assert.areEqual('PAID', c.outcome);
 
         PaymentPageController.simulateUnexpectedError = true;
         Assert.areEqual(PaymentService.MSG_UNAVAILABLE, PaymentPageController.getContext('x', 'y').message);
@@ -604,6 +705,7 @@ private class PaymentTest {
         StripeMock m = mock();
         m.addResponse('GET /v1/checkout/sessions/' + SID1, 200, session(SID1, 'complete', 'paid', 100000L, 'usd', p.Request_Reference__c, 'pi_staff'));
 
+        Test.startTest();
         System.runAs(outsider()) {
             Assert.isFalse(PurchasePaymentController.sendPaymentLink(p.Id).success, 'no permission');
             Assert.areEqual('ERROR', PurchasePaymentController.reverifyPayment(p.Id).outcome, 'no permission');
@@ -614,12 +716,9 @@ private class PaymentTest {
             Assert.isTrue(o.canManage);
             Assert.areEqual(1, o.attempts.size());
             Assert.areEqual(SID1.right(8), o.attempts[0].providerRef, 'only the last 8 characters are shown');
-            PaymentLinkService.SendResult sent = PurchasePaymentController.sendPaymentLink(p.Id);
-            Assert.isTrue(sent.success);
-            Assert.isTrue(sent.emailSent);
-            Assert.isNull(sent.link, 'the link is only returned when the email failed');
             Assert.areEqual('PAID', PurchasePaymentController.reverifyPayment(p.Id).outcome);
         }
+        Test.stopTest();
         Assert.areEqual('Completed', reload(a.Id).Status__c);
 
         try {
@@ -632,6 +731,18 @@ private class PaymentTest {
         System.runAs(reviewer()) {
             Assert.isFalse(PurchasePaymentController.sendPaymentLink(p.Id).success);
             Assert.areEqual('ERROR', PurchasePaymentController.reverifyPayment(p.Id).outcome);
+        }
+    }
+
+    @IsTest
+    static void staffCanSendThePaymentLink() {
+        cfg();
+        Purchase__c p = makePurchase('BK3', 20);
+        System.runAs(reviewer()) {
+            PaymentLinkService.SendResult sent = PurchasePaymentController.sendPaymentLink(p.Id);
+            Assert.isTrue(sent.success, sent.message);
+            Assert.isTrue(sent.emailSent);
+            Assert.isNull(sent.link, 'the link is only returned when the email failed');
         }
     }
 
