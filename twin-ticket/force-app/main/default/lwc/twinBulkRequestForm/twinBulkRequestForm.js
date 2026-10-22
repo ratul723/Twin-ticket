@@ -70,6 +70,7 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
 
     // ---------- view state ----------
     get showForm() { return (this.phase === 'form' || this.phase === 'submitting') && this.ev && this.cfg && !this.loadError; }
+    get documentsRequired() { return this.cfg ? this.cfg.documentsRequired === true : false; }
     get isBusy() { return this.phase === 'submitting'; }
     get isPartial() { return this.phase === 'partial'; }
     get isSuccess() { return this.phase === 'success'; }
@@ -184,7 +185,7 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
         // Remove messages left by the previous server response, so they can't block a corrected submit.
         controls.forEach((el) => { if (el.setCustomValidity) { el.setCustomValidity(''); } });
         const allValid = controls.reduce((ok, el) => (el.reportValidity ? el.reportValidity() && ok : ok), true);
-        if (this.files.length === 0) {
+        if (this.documentsRequired && this.files.length === 0) {
             this.fileError = 'Please add at least one identity document.';
             return false;
         }
@@ -214,7 +215,7 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
         this.statusText = 'Submitting your request…';
         this.progress = 8;
         try {
-            const res = await submitRequest({ input: this.buildInput() });
+            const res = await submitRequest({ inputJson: JSON.stringify(this.buildInput()) });
             if (!res.success) {
                 this.phase = 'form';
                 this.applyServerErrors(res);
@@ -222,7 +223,12 @@ export default class TwinBulkRequestForm extends NavigationMixin(LightningElemen
             }
             this.reference = res.reference;
             this._token = res.uploadToken;
-            await this.uploadAll();
+            if (this.documentsRequired) {
+                await this.uploadAll();
+            } else {
+                this._token = undefined;
+                this.phase = 'success';     // Lead created: show the reference number
+            }
         } catch (e) {
             this.phase = 'form';
             this.banner = GENERIC_ERROR;

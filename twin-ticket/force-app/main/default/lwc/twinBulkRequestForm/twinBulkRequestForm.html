@@ -90,23 +90,25 @@
                     </article>
 
                     <article class="panel">
-                        <h2 class="panel__title"><span class="step">4</span>Upload documents</h2>
-                        <p class="muted">{fileHelp}</p>
-                        <lightning-input type="file" label="Identity documents" accept={acceptAttr} multiple
-                            disabled={uploadDisabled} onchange={handleFiles}></lightning-input>
-                        <template lwc:if={fileError}><p class="field-error" role="alert">{fileError}</p></template>
-                        <template lwc:if={hasFiles}>
-                            <ul class="files">
-                                <template for:each={fileRows} for:item="f">
-                                    <li key={f.id} class="files__row">
-                                        <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
-                                        <span class="files__name">{f.name}<span class="muted"> · {f.sizeLabel}</span></span>
-                                        <span class={f.statusClass}>{f.statusLabel}</span>
-                                        <lightning-button-icon icon-name="utility:close" variant="bare" alternative-text="Remove file"
-                                            data-id={f.id} disabled={isBusy} onclick={handleRemove}></lightning-button-icon>
-                                    </li>
-                                </template>
-                            </ul>
+                        <template lwc:if={documentsRequired}>
+                            <h2 class="panel__title"><span class="step">4</span>Upload documents</h2>
+                            <p class="muted">{fileHelp}</p>
+                            <lightning-input type="file" label="Identity documents" accept={acceptAttr} multiple
+                                disabled={uploadDisabled} onchange={handleFiles}></lightning-input>
+                            <template lwc:if={fileError}><p class="field-error" role="alert">{fileError}</p></template>
+                            <template lwc:if={hasFiles}>
+                                <ul class="files">
+                                    <template for:each={fileRows} for:item="f">
+                                        <li key={f.id} class="files__row">
+                                            <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                            <span class="files__name">{f.name}<span class="muted"> · {f.sizeLabel}</span></span>
+                                            <span class={f.statusClass}>{f.statusLabel}</span>
+                                            <lightning-button-icon icon-name="utility:close" variant="bare" alternative-text="Remove file"
+                                                data-id={f.id} disabled={isBusy} onclick={handleRemove}></lightning-button-icon>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
                         </template>
 
                         <!-- Honeypot: invisible to people. Bots fill it, and the server discards those requests. -->

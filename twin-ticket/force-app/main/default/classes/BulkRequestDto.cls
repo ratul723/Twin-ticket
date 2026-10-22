@@ -11,6 +11,7 @@ public class BulkRequestDto {
         @AuraEnabled public Integer maxFileKb;
         @AuraEnabled public List<String> allowedExtensions;
         @AuraEnabled public List<Option> docTypes;
+        @AuraEnabled public Boolean documentsRequired;
     }
     public class RequestInput {
         @AuraEnabled public String fullName;

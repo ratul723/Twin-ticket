@@ -260,7 +260,7 @@ public with sharing class LeadReviewService {
     private static List<String> approvalBlockers(Lead l, Integer fileCount) {
         List<String> b = new List<String>();
         if (l.Submission_Complete__c != true) { b.add('the buyer has not finished submitting their request.'); }
-        if (fileCount < 1) { b.add('no identity documents are attached.'); }
+        if (TwinTicketConfig.documentsRequired() && fileCount < 1) { b.add('no identity documents are attached.'); }
         if (l.Event_Detail__c == null || l.Event_Detail__r.Status__c != 'Published') { b.add('the event is no longer published.'); }
         else if (l.Event_Detail__r.Start_DateTime__c != null && l.Event_Detail__r.Start_DateTime__c <= Datetime.now()) { b.add('the event has already started.'); }
         if (l.Ticket_Category__c == null || l.Ticket_Category__r.Price__c == null || l.Ticket_Category__r.Price__c <= 0) {

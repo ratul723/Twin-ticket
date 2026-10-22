@@ -111,7 +111,9 @@ private class LeadReviewTest {
         update new Event_Detail__c(Id = draftEvt.Event_Detail__c, Status__c = 'Draft');
         System.runAs(reviewer()) {
             Assert.isTrue(decisionError(incomplete.Id, 'APPROVE', 'try approve', null).contains('not finished'));
-            Assert.isTrue(decisionError(noFile.Id, 'APPROVE', 'try approve', null).contains('no identity documents'));
+            if (TwinTicketConfig.documentsRequired()) {
+                Assert.isTrue(decisionError(noFile.Id, 'APPROVE', 'try approve', null).contains('no identity documents'));
+            }
             Assert.isTrue(decisionError(tooMany.Id, 'APPROVE', 'try approve', null).contains('only 5 tickets'));
             Assert.isTrue(decisionError(draftEvt.Id, 'APPROVE', 'try approve', null).contains('no longer published'));
         }

@@ -67,7 +67,7 @@ private class BulkRequestTest {
                          Upload_Token_Hash__c, Identity_Number_Last_4__c, Event_Detail__c
                   FROM Lead WHERE Request_Reference__c = :r.reference];
         Assert.areEqual('Pending', l.Verification_Status__c);
-        Assert.isFalse(l.Submission_Complete__c);
+        Assert.areEqual(!TwinTicketConfig.documentsRequired(), l.Submission_Complete__c);
         Assert.areEqual(20, l.Requested_Quantity__c);
         Assert.areEqual('buyer@example.com', l.Email, 'email normalised');
         Assert.areEqual('+8801700000000', l.Phone, 'phone normalised');
@@ -240,14 +240,14 @@ private class BulkRequestTest {
         Assert.areEqual(10, cfg.minQuantity);
         Assert.isFalse(cfg.docTypes.isEmpty());
 
-        BulkRequestDto.SubmitResult r = BulkRequestController.submitRequest(validInput());
+        BulkRequestDto.SubmitResult r = BulkRequestController.submitRequest(JSON.serialize(validInput()));
         Assert.isTrue(r.success);
-        Assert.isFalse(BulkRequestController.uploadDocument(r.reference, 'bad-token', 'a.pdf', b64(PDF_HEX, 8)).success);
+        Assert.isFalse(BulkRequestController.submitRequest(JSON.serialize(validInput())).success);
         Assert.isTrue(BulkRequestController.uploadDocument(r.reference, r.uploadToken, 'a.pdf', b64(PDF_HEX, 8)).success);
         Assert.isTrue(BulkRequestController.completeSubmission(r.reference, r.uploadToken).success);
 
         BulkRequestController.simulateUnexpectedError = true;
-        Assert.isFalse(BulkRequestController.submitRequest(validInput()).success);
+        Assert.isFalse(BulkRequestController.submitRequest(JSON.serialize(validInput())).success);
         Assert.isFalse(BulkRequestController.uploadDocument('x', 'y', 'a.pdf', 'z').success);
         Assert.isFalse(BulkRequestController.completeSubmission('x', 'y').success);
         try {

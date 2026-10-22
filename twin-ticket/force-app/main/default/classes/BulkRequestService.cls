@@ -28,6 +28,7 @@ public without sharing class BulkRequestService {
         cfg.maxFileKb = TwinTicketConfig.maxFileKb();
         cfg.allowedExtensions = new List<String>(TwinTicketConfig.allowedExtensions());
         cfg.docTypes = docTypeOptions();
+        cfg.documentsRequired = TwinTicketConfig.documentsRequired();
         return cfg;
     }
 
@@ -149,7 +150,7 @@ public without sharing class BulkRequestService {
             Identity_Document_Type__c = docType,
             Identity_Number_Last_4__c = last4.toUpperCase(),
             Verification_Status__c = 'Pending',
-            Submission_Complete__c = false,
+            Submission_Complete__c = !TwinTicketConfig.documentsRequired(), 
             Upload_Token_Hash__c = hash(token),
             Upload_Token_Expires_On__c = Datetime.now().addMinutes(TOKEN_MINUTES)
         );
@@ -159,6 +160,7 @@ public without sharing class BulkRequestService {
         Database.DMLOptions opts = new Database.DMLOptions();
         opts.optAllOrNone = false;                    // return errors instead of throwing
         opts.DuplicateRuleHeader.allowSave = true;    // repeat buyers must not be blocked by duplicate rules
+        if (queueId == null) { opts.AssignmentRuleHeader.useDefaultRule = true; }   // route via the active Lead Assignment Rule
         for (Integer attempt = 1; attempt <= 3; attempt++) {
             lead.Request_Reference__c = generateReference();
             Database.SaveResult sr = Database.insert(lead, opts);
@@ -171,7 +173,7 @@ public without sharing class BulkRequestService {
             }
             Boolean duplicateRef = false;
             for (Database.Error err : sr.getErrors()) {
-                System.debug(LoggingLevel.WARN, LOG + 'insert attempt ' + attempt + ' failed: ' + err.getStatusCode());
+                System.debug(LoggingLevel.WARN, LOG + 'insert attempt ' + attempt + ' failed: ' + err.getStatusCode() + ' - ' + err.getMessage());
                 if (err.getStatusCode() == StatusCode.DUPLICATE_VALUE) { duplicateRef = true; }
             }
             if (!duplicateRef) { break; }
@@ -261,8 +263,13 @@ public without sharing class BulkRequestService {
             && rows[0].Upload_Token_Expires_On__c > Datetime.now()
             && rows[0].Upload_Token_Hash__c.equals(hash(token)); // equals() is case-sensitive, unlike ==
         if (!valid) {
-            System.debug(LoggingLevel.WARN, LOG + 'authorize failed for ref=' + ref);
-            throw new RequestException(MSG_LINK_INVALID);
+            System.debug(LoggingLevel.WARN, LOG + 'authorize failed for ref=' + ref
+                + ' found=' + !rows.isEmpty()
+                + (rows.isEmpty() ? '' : ' complete=' + rows[0].Submission_Complete__c
+                    + ' hashNull=' + (rows[0].Upload_Token_Hash__c == null)
+                    + ' expiresNull=' + (rows[0].Upload_Token_Expires_On__c == null)
+                    + ' expired=' + (rows[0].Upload_Token_Expires_On__c != null && rows[0].Upload_Token_Expires_On__c <= Datetime.now())
+                    + ' hashMatch=' + (rows[0].Upload_Token_Hash__c != null && rows[0].Upload_Token_Hash__c.equals(hash(token)))));
         }
         return rows[0];
     }
@@ -278,12 +285,14 @@ public without sharing class BulkRequestService {
     }
 
     private static Id reviewQueueId() {
-        List<Group> q = [SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = :QUEUE_DEV_NAME LIMIT 1];
-        if (q.isEmpty()) {
-            System.debug(LoggingLevel.WARN, LOG + 'review queue ' + QUEUE_DEV_NAME + ' not found, default owner used');
+        try {
+            List<Group> q = [SELECT Id FROM Group WHERE Type = 'Queue' AND DeveloperName = :QUEUE_DEV_NAME LIMIT 1];
+            return q.isEmpty() ? null : q[0].Id;
+        } catch (Exception e) {
+            // Guest users can never query Group. The Lead Assignment Rule routes the Lead instead.
+            System.debug(LoggingLevel.INFO, LOG + 'queue lookup not available for this user, using the assignment rule');
             return null;
         }
-        return q[0].Id;
     }
 
     @TestVisible

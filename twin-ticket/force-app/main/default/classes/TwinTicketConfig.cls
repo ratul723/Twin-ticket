@@ -19,6 +19,9 @@ public with sharing class TwinTicketConfig {
     /** Stripe allows 30 minutes to 24 hours. We stay inside that range even after rounding. */
     public static Integer paymentSessionMinutes() { return Math.min(1380, Math.max(30, intValue('Payment_Session_Minutes__c', 60))); }
 
+        /** Identity documents on bulk requests. OFF for now: set to true when the upload step is ready. */
+    public static Boolean documentsRequired() { return false; }
+    
     public static String paymentCurrency() {
         Object v = value('Payment_Currency__c');
         String c = v == null ? 'usd' : String.valueOf(v).trim().toLowerCase();

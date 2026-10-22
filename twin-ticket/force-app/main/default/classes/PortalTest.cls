@@ -102,7 +102,8 @@ private class PortalTest {
     }
     private static User byAlias(String alias) { return [SELECT Id, ContactId FROM User WHERE Alias = :alias LIMIT 1]; }
     private static Purchase__c pur(String suffix) {
-        return [SELECT Id, Contact__c, Payment_Status__c, Request_Reference__c FROM Purchase__c WHERE Request_Reference__c = :('TT-20261021-PTL' + suffix) LIMIT 1];
+        String ref = 'TT-20261021-PTL' + suffix.left(1) + '0' + suffix.substring(1);   // 'B1' -> PTLB01
+        return [SELECT Id, Contact__c, Payment_Status__c, Request_Reference__c FROM Purchase__c WHERE Request_Reference__c = :ref LIMIT 1];
     }
     private static Portal_Provision__e evt(Id purchaseId) { return new Portal_Provision__e(Purchase_Id__c = String.valueOf(purchaseId)); }
     private static String loadError(Id purchaseId, Boolean requirePaid) {

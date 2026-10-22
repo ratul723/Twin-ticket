@@ -18,12 +18,13 @@ public with sharing class BulkRequestController {
     }
 
     @AuraEnabled
-    public static BulkRequestDto.SubmitResult submitRequest(BulkRequestDto.RequestInput input) {
+    public static BulkRequestDto.SubmitResult submitRequest(String inputJson) {
         try {
             if (simulateUnexpectedError) { throw new DmlException('simulated'); }
-            return BulkRequestService.submit(input);
+            return BulkRequestService.submit(parseInput(inputJson));
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, LOG + 'submitRequest failed: ' + e.getTypeName() + ' - ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, LOG + 'submitRequest failed: ' + e.getTypeName() + ' - ' + e.getMessage()
+                + ' @ ' + e.getStackTraceString());
             BulkRequestDto.SubmitResult r = new BulkRequestDto.SubmitResult();
             r.success = false;
             r.message = MSG_GENERIC;
@@ -31,6 +32,31 @@ public with sharing class BulkRequestController {
             return r;
         }
     }
+
+    /** Reads the form JSON as a plain map, so no class-type access is needed for guests. Unknown keys are ignored. */
+    @TestVisible
+    private static BulkRequestDto.RequestInput parseInput(String inputJson) {
+        if (String.isBlank(inputJson)) { return null; }
+        Object parsed = JSON.deserializeUntyped(inputJson);
+        if (!(parsed instanceof Map<String, Object>)) { return null; }
+        Map<String, Object> m = (Map<String, Object>) parsed;
+        BulkRequestDto.RequestInput i = new BulkRequestDto.RequestInput();
+        i.fullName        = str(m.get('fullName'));
+        i.email           = str(m.get('email'));
+        i.phone           = str(m.get('phone'));
+        i.organization    = str(m.get('organization'));
+        i.eventId         = str(m.get('eventId'));
+        i.categoryId      = str(m.get('categoryId'));
+        i.identityDocType = str(m.get('identityDocType'));
+        i.identityLast4   = str(m.get('identityLast4'));
+        i.website         = str(m.get('website'));
+        i.consent         = m.get('consent') == true;
+        Object q = m.get('quantity');
+        try { i.quantity = q == null ? null : Integer.valueOf(String.valueOf(q)); } catch (Exception e) { i.quantity = null; }
+        return i;
+    }
+
+    private static String str(Object o) { return o == null ? null : String.valueOf(o); }
 
     @AuraEnabled
     public static BulkRequestDto.StepResult uploadDocument(String reference, String uploadToken, String fileName, String base64Data) {
