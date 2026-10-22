@@ -119,8 +119,10 @@ public with sharing class PublicEventController {
         dto.timeZone = row.Time_Zone__c;
         dto.venueName = row.Venue_Name__c;
         dto.venueAddress = row.Venue_Address__c;
-        dto.latitude = row.Venue_Latitude__c;
-        dto.longitude = row.Venue_Longitude__c;
+        Boolean coordsOk = row.Venue_Latitude__c != null && row.Venue_Longitude__c != null
+            && Math.abs(row.Venue_Latitude__c) <= 90 && Math.abs(row.Venue_Longitude__c) <= 180;
+        dto.latitude = coordsOk ? row.Venue_Latitude__c : null;
+        dto.longitude = coordsOk ? row.Venue_Longitude__c : null;
         if (row.Ticket_Categories__r != null) {
             for (Ticket_Category__c c : row.Ticket_Categories__r) {
                 CategoryDto cd = new CategoryDto();

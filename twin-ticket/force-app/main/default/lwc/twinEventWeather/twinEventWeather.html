@@ -1,0 +1,56 @@
+<template>
+    <template lwc:if={hidden}></template>
+    <template lwc:else>
+        <article class="panel" aria-live="polite">
+            <h2 class="panel__title">Weather forecast</h2>
+
+            <template lwc:if={isLoading}>
+                <div class="skeleton" aria-hidden="true">
+                    <div class="skeleton__bar skeleton__bar--wide"></div>
+                    <div class="skeleton__bar"></div>
+                </div>
+                <p class="slds-assistive-text">Loading the forecast</p>
+            </template>
+
+            <template lwc:elseif={isAvailable}>
+                <div class="now">
+                    <span class="now__icon" aria-hidden="true">{icon}</span>
+                    <div>
+                        <p class="now__temps">{tempRange}</p>
+                        <p class="now__summary">{r.summary}</p>
+                    </div>
+                </div>
+                <dl class="facts">
+                    <div><dt>For</dt><dd>{dayLabel}</dd></div>
+                    <div><dt>Chance of rain</dt><dd>{rainLabel}</dd></div>
+                </dl>
+                <p class="note">{cacheNote}</p>
+            </template>
+
+            <template lwc:elseif={isInfo}>
+                <div class="info">
+                    <lightning-icon icon-name={infoIcon} size="small" class="info__icon"></lightning-icon>
+                    <p>{r.message}</p>
+                </div>
+            </template>
+
+            <template lwc:else>
+                <div class="info info--soft">
+                    <lightning-icon icon-name="utility:warning" size="small" class="info__icon"></lightning-icon>
+                    <div>
+                        <p>{messageText}</p>
+                        <template lwc:if={canRetry}>
+                            <lightning-button variant="base" label="Try again" onclick={handleRetry}></lightning-button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <template lwc:if={showAttribution}>
+                <p class="credit">
+                    <a href={r.attributionUrl} target="_blank" rel="noopener noreferrer">{r.attributionText}</a>
+                </p>
+            </template>
+        </article>
+    </template>
+</template>

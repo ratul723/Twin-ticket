@@ -87,6 +87,19 @@ private class PublicEventControllerTest {
         Assert.areEqual(PublicEventController.MSG_NOT_FOUND, detailError('not-an-id'), 'malformed id');
         Assert.areEqual(PublicEventController.MSG_NOT_FOUND, detailError(String.valueOf(a.Id)), 'wrong object type');
     }
+    @IsTest
+    static void impossibleCoordinatesAreNeverSentToTheBrowser() {
+        insert new Event_Detail__c(Name = 'Test BadCoords', Status__c = 'Published', Start_DateTime__c = System.now().addDays(8),
+            Venue_Latitude__c = 123.0, Venue_Longitude__c = 90.4125);
+        for (PublicEventController.EventDto d : PublicEventController.getPublishedEvents()) {
+            if (d.name == 'Test BadCoords') {
+                Assert.isNull(d.latitude);
+                Assert.isNull(d.longitude);
+            } else if (d.name == 'Test Summit') {
+                Assert.areEqual(23.8103, d.latitude, 'valid coordinates are unchanged');
+            }
+        }
+    }
 
     @IsTest
     static void userWithoutObjectAccessGetsSafeErrorNotData() {

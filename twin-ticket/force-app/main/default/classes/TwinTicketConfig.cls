@@ -35,6 +35,19 @@ public with sharing class TwinTicketConfig {
         String s = v == null ? '' : String.valueOf(v).trim();
         return String.isBlank(s) ? 'Customer Community User' : s;
     }
+    public static Boolean weatherEnabled() {
+        Object v = value('Weather_Enabled__c');
+        return v == null ? true : (Boolean) v;
+    }
+
+    /** 16 forecast days counting today = 15 days ahead at most. Config can only narrow this. */
+    public static Integer weatherHorizonDays() {
+        return Math.min(15, Math.max(0, intValue('Weather_Horizon_Days__c', 15)));
+    }
+
+    public static Integer weatherBackoffMinutes() {
+        return Math.min(120, Math.max(1, intValue('Weather_Backoff_Minutes__c', 10)));
+    }
 
     /** Feature flag. If the field is missing entirely, portal provisioning stays ON. */
     public static Boolean portalEnabled() {

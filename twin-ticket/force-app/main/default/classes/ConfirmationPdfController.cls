@@ -33,7 +33,7 @@ public with sharing class ConfirmationPdfController {
             Id purchaseId = String.isBlank(raw) ? null : Id.valueOf(raw.trim());
             Purchase__c p = PortalPurchaseService.loadAuthorized(purchaseId, true);
 
-            PortalDisplayLookup.EventInfo ev = PortalDisplayLookup.events(new Set<Id>{ p.Event__c }).get(p.Event__c);
+            PortalDisplayLookup.EventInfo ev = PortalDisplayLookup.events(new Set<Id>{ p.Event_Detail__c }).get(p.Event_Detail__c);
             Map<String, String> buyer = PortalDisplayLookup.buyer(p.Id);
             String cur = TwinTicketConfig.paymentCurrency().toUpperCase();
 

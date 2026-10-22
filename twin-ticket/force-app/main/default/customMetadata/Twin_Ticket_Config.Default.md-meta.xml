@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>Default</label>
+    <protected>false</protected>
+    <values>
+        <field>Allowed_File_Types__c</field>
+        <value xsi:type="xsd:string">pdf,jpg,jpeg,png</value>
+    </values>
+    <values>
+        <field>Environment_Label__c</field>
+        <value xsi:type="xsd:string">Sandbox</value>
+    </values>
+    <values>
+        <field>Max_Bulk_Quantity__c</field>
+        <value xsi:type="xsd:double">500.0</value>
+    </values>
+    <values>
+        <field>Max_File_Size_KB__c</field>
+        <value xsi:type="xsd:double">2048.0</value>
+    </values>
+    <values>
+        <field>Max_Files__c</field>
+        <value xsi:type="xsd:double">3.0</value>
+    </values>
+    <values>
+        <field>Max_Requests_Per_Email_Per_Day__c</field>
+        <value xsi:type="xsd:double">3.0</value>
+    </values>
+    <values>
+        <field>Min_Bulk_Quantity__c</field>
+        <value xsi:type="xsd:double">10.0</value>
+    </values>
+    <values>
+        <field>Payment_Currency__c</field>
+        <value xsi:type="xsd:string">USD</value>
+    </values>
+    <values>
+        <field>Payment_Session_Minutes__c</field>
+        <value xsi:type="xsd:double">60.0</value>
+    </values>
+    <values>
+        <field>Payment_Token_Hours__c</field>
+        <value xsi:type="xsd:double">168.0</value>
+    </values>
+    <values>
+        <field>Payments_Enabled__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Portal_Enabled__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Portal_Profile_Name__c</field>
+        <value xsi:type="xsd:string">Customer Community User</value>
+    </values>
+    <values>
+        <field>Site_Base_Url__c</field>
+        <value xsi:type="xsd:string">https://orgfarm-5af2cc6c6d-dev-ed.develop.my.site.com/twinticket</value>
+    </values>
+    <values>
+        <field>Weather_Enabled__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Weather_Horizon_Days__c</field>
+        <value xsi:type="xsd:double">16.0</value>
+    </values>
+</CustomMetadata>

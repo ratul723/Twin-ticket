@@ -180,14 +180,14 @@ public without sharing class PortalProvisioningService {
     private static Boolean sendWelcomeEmail(Purchase__c p, String toAddress, String username) {
         if (Limits.getEmailInvocations() >= Limits.getLimitEmailInvocations()) { return false; }
         String login = TwinTicketConfig.portalLoginUrl();
-        String when = 'the event date';
+        String targetDate = 'the event date';
         try {
-            when = p.Event_Detail__r.Start_DateTime__c.format('d MMM yyyy, HH:mm', String.isBlank(p.Event_Detail__r.Time_Zone__c) ? 'GMT' : p.Event_Detail__r.Time_Zone__c);
+            targetDate = p.Event_Detail__r.Start_DateTime__c.format('d MMM yyyy, HH:mm', String.isBlank(p.Event_Detail__r.Time_Zone__c) ? 'GMT' : p.Event_Detail__r.Time_Zone__c);
         } catch (Exception e) {
-            when = p.Event_Detail__r.Start_DateTime__c == null ? when : p.Event_Detail__r.Start_DateTime__c.formatGmt('d MMM yyyy, HH:mm') + ' UTC';
+            targetDate = p.Event_Detail__r.Start_DateTime__c == null ? targetDate : p.Event_Detail__r.Start_DateTime__c.formatGmt('d MMM yyyy, HH:mm') + ' UTC';
         }
         String greeting = String.isBlank(p.Contact__r.FirstName) ? 'Hello' : 'Hello ' + p.Contact__r.FirstName;
-        String summary = p.Quantity__c.intValue() + ' x ' + p.Ticket_Category__r.Name + ' for ' + p.Event_Detail__r.Name + ' (' + when + ')';
+        String summary = p.Quantity__c.intValue() + ' x ' + p.Ticket_Category__r.Name + ' for ' + p.Event_Detail__r.Name + ' (' + targetDate + ')';
         String total = TwinTicketConfig.paymentCurrency().toUpperCase() + ' ' + p.Total_Amount__c.setScale(2).format();
 
         String text = greeting + ',\n\nWe have received your payment. Thank you!\n\n' + summary + '\nTotal paid: ' + total
