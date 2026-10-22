@@ -63,7 +63,16 @@
                         </template>
                         <template lwc:else>
                             <div class="row">
-                                <lightning-combobox data-field="categoryId" label="Ticket category" options={categoryOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox>
+                                <!-- <lightning-combobox data-field="categoryId" label="Ticket category" options={categoryOptions} required disabled={isBusy} onchange={handleChange}></lightning-combobox> -->
+                                <lightning-combobox 
+                                    data-field="categoryId" 
+                                    label="Ticket category" 
+                                    value={categoryId} 
+                                    options={categoryOptions} 
+                                    required 
+                                    disabled={isBusy} 
+                                    onchange={handleChange}>
+                                </lightning-combobox>
                                 <lightning-input data-field="quantity" type="number" label="Quantity" required min={minQty} max={maxQty} step="1"
                                     message-when-range-overflow={rangeMessage} message-when-range-underflow={rangeMessage}
                                     field-level-help={quantityHelp} disabled={isBusy} onchange={handleChange}></lightning-input>

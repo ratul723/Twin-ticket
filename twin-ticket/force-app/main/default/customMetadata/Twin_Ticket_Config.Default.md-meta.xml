@@ -59,6 +59,10 @@
         <value xsi:type="xsd:string">https://orgfarm-5af2cc6c6d-dev-ed.develop.my.site.com/twinticket</value>
     </values>
     <values>
+        <field>Weather_Backoff_Minutes__c</field>
+        <value xsi:type="xsd:double">10.0</value>
+    </values>
+    <values>
         <field>Weather_Enabled__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>

@@ -2,6 +2,7 @@ import { LightningElement, api } from 'lwc';
 
 const HALF_WIDTH_DEG = 0.01;
 const HALF_HEIGHT_DEG = 0.006;
+const LOAD_TIMEOUT_MS = 10000;
 
 export default class TwinVenueMap extends LightningElement {
     @api latitude;
@@ -9,11 +10,32 @@ export default class TwinVenueMap extends LightningElement {
     @api venueName;
     @api venueAddress;
 
+    state = 'loading';          // loading | loaded | failed
+    _timer;
+
+    connectedCallback() {
+        // If the frame never reports "loaded" (blocked, offline, slow), show a text fallback instead of an empty box.
+        this._timer = setTimeout(() => {
+            if (this.state === 'loading') { this.state = 'failed'; }
+        }, LOAD_TIMEOUT_MS);
+    }
+
+    disconnectedCallback() {
+        clearTimeout(this._timer);
+    }
+
+    handleLoaded() {
+        clearTimeout(this._timer);
+        this.state = 'loaded';
+    }
+
+    get isLoading() { return this.state === 'loading'; }
+    get hasFailed() { return this.state === 'failed'; }
     get lat() { return Number(this.latitude); }
     get lon() { return Number(this.longitude); }
 
     get hasLocation() {
-        // Validate before building any URL: null, text, or out-of-range values show the fallback instead.
+        // Validate before building any URL: null, text or out-of-range values show the address fallback instead.
         return this.latitude !== null && this.latitude !== undefined &&
                this.longitude !== null && this.longitude !== undefined &&
                Number.isFinite(this.lat) && Number.isFinite(this.lon) &&

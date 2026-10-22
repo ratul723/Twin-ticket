@@ -8,10 +8,10 @@ public with sharing class WeatherService {
 
     private static final String LOG = 'TT-WEATHER ';
     private static final String corr = 'W' + String.valueOf(Math.abs(Crypto.getRandomLong()));
-    @TestVisible private static final String MSG_UNAVAILABLE = 'We could not load the forecast right now. Please check back a little later.';
-    @TestVisible private static final String MSG_NOT_YET = 'Forecast not available yet. Forecasts appear up to {0} days before the event.';
-    @TestVisible private static final String MSG_PAST = 'This event has already taken place.';
-    @TestVisible private static final String MSG_NO_LOCATION = 'The venue location is not available, so we cannot show a forecast.';
+    @TestVisible public static final String MSG_UNAVAILABLE = 'We could not load the forecast right now. Please check back a little later.';
+    @TestVisible public static final String MSG_NOT_YET = 'Forecast not available yet. Forecasts appear up to {0} days before the event.';
+    @TestVisible public static final String MSG_PAST = 'This event has already taken place.';
+    @TestVisible public static final String MSG_NO_LOCATION = 'The venue location is not available, so we cannot show a forecast.';
 
     public static WeatherDto.Result getForecast(String rawEventId) {
         WeatherDto.Result r = new WeatherDto.Result();

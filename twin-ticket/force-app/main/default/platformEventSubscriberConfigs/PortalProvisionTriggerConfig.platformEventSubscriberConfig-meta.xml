@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <PlatformEventSubscriberConfig xmlns="http://soap.sforce.com/2006/04/metadata">
     <batchSize>10</batchSize>
-    <isProtected>false</isProtected>
     <masterLabel>PortalProvisionTriggerConfig</masterLabel>
+    <numPartitions>1</numPartitions>
+    <partitionKey>EventUuid</partitionKey>
     <platformEventConsumer>PortalProvisionTrigger</platformEventConsumer>
 </PlatformEventSubscriberConfig>

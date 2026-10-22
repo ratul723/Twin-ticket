@@ -160,7 +160,8 @@ private class WeatherTest {
         cfg();
         MeteoMock m = mock(200, '{}');
         Id eventId = ev('Wx Near').Id;
-        System.runAs([SELECT Id FROM User WHERE Alias = 'wxna' LIMIT 1]) {
+        User wxnaUser = [SELECT Id FROM User WHERE Alias = 'wxna' LIMIT 1];
+        System.runAs(wxnaUser) {
             Assert.areEqual('UNAVAILABLE', WeatherService.getForecast(String.valueOf(eventId)).state);
         }
         Assert.areEqual(0, m.calls.size());
