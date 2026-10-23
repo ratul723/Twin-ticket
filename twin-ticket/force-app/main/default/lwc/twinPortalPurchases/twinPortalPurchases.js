@@ -56,8 +56,9 @@ export default class TwinPortalPurchases extends LightningElement {
     }
 
     handleDownload(event) {
-        // The Visualforce page lives at the site root, not under /s. The page itself re-checks that you own a PAID purchase.
-        const root = basePath.replace(/\/s$/, '');
-        window.open(`${root}/apex/TwinTicketConfirmation?id=${encodeURIComponent(event.currentTarget.dataset.id)}`, '_blank', 'noopener');
+        // LWR sites serve Visualforce from their companion site "<prefix>vforcesite" (e.g. /twinticket -> /twinticketvforcesite).
+        // Aura sites (basePath ending in /s) serve it from the site root. The page itself re-checks that you own a PAID purchase.
+        const root = basePath.endsWith('/s') ? basePath.slice(0, -2) : `${basePath}vforcesite`;
+        window.open(`${root}/apex/TwinTicketConfirmation?id=${encodeURIComponent(event.currentTarget.dataset.id)}`, '_blank');
     }
 }

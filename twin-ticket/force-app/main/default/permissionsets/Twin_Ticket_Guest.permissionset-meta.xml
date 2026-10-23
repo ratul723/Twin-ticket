@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>PublicEventController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>BulkRequestController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>WeatherController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>PaymentPageController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description>Twin Ticket public site: Apex entry points for events, bulk request, weather and the pay page. Nothing else.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Twin Ticket Guest</label>
+</PermissionSet>

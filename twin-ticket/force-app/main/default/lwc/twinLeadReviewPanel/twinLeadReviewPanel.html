@@ -8,14 +8,14 @@
     </template>
 
     <template lwc:elseif={d}>
-        <section class="hero">
+        <!-- <section class="hero">
             <div>
                 <p class="hero__eyebrow">Bulk ticket request</p>
                 <h2 class="hero__ref">{d.reference}</h2>
                 <p class="hero__sub">{d.buyerName} · {d.organization}</p>
             </div>
             <span class={statusClass}>{d.status}</span>
-        </section>
+        </section> -->
 
         <template lwc:if={hasBlockers}>
             <div class="alert alert--warn" role="alert">

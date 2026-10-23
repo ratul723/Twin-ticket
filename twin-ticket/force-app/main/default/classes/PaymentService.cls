@@ -87,8 +87,8 @@ public without sharing class PaymentService {
             // ---------- PHASE A: callouts only. Learn the real state of every open attempt. ----------
             List<Ticket_Payment__c> openAttempts = [
                 SELECT Id, Status__c, Provider_Order_Id__c, Amount__c, Currency_Code__c
-                FROM Ticket_Payment__c WHERE Purchase__c = :p.Id AND Status__c IN :OPEN_STATUSES ORDER BY CreatedDate DESC];
-            Integer allAttempts = [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id];
+                FROM Ticket_Payment__c WHERE Purchase__c = :p.Id AND Status__c IN :OPEN_STATUSES WITH SYSTEM_MODE ORDER BY CreatedDate DESC];
+            Integer allAttempts = [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id WITH SYSTEM_MODE];
 
             Map<Id, SessionView> views = new Map<Id, SessionView>();
             for (Ticket_Payment__c a : openAttempts) {
@@ -138,9 +138,13 @@ public without sharing class PaymentService {
             }
 
             Integer attemptNo = allAttempts + 1;
-            String idemKey = 'TT-' + p.Id + '-' + attemptNo;
+            // The key includes the 5-minute window of the session expiry. Inside one window a double click sends identical
+            // parameters with the same key, so Stripe safely returns the SAME session. A retry in a later window (for example
+            // after a failed save) gets a NEW key instead of being refused by Stripe for changed parameters.
+            Long expiresAt = sessionExpiresAt();
+            String idemKey = 'TT-' + p.Id + '-' + attemptNo + '-' + (expiresAt / 300);
             StripeClient.StripeResponse cr = StripeClient.createCheckoutSession(
-                buildSessionParams(p, token, qty, unitCents, cur, attemptNo), idemKey);
+                buildSessionParams(p, token, qty, unitCents, cur, attemptNo, expiresAt), idemKey);
             logCall('CreateCheckoutSession', cr, p.Id);
             if (!cr.ok()) {
                 throw new PaymentException(cr.errorType == 'idempotency_error' ? MSG_BUSY : MSG_UNAVAILABLE);
@@ -155,13 +159,17 @@ public without sharing class PaymentService {
                 Amount__c = Decimal.valueOf(totalCents).divide(100, 2), Currency_Code__c = cur.toUpperCase(),
                 Status__c = 'Created', Idempotency_Key__c = idemKey, Correlation_Id__c = corr,
                 Status_Detail__c = 'Checkout session created, waiting for the buyer');
-            Database.SaveResult sr = Database.insert(created, false);
+            Database.SaveResult sr = Database.insert(created, false, AccessLevel.SYSTEM_MODE);
             if (!sr.isSuccess()) {
+                for (Database.Error err : sr.getErrors()) {
+                    System.debug(LoggingLevel.ERROR, LOG + 'attempt insert failed: ' + err.getStatusCode() + ' - ' + err.getMessage()
+                        + ' fields=' + err.getFields());
+                }
                 // A concurrent request with the same idempotency key already stored this very session.
-                Integer existing = [SELECT COUNT() FROM Ticket_Payment__c WHERE Provider_Order_Id__c = :nv.id];
+                Integer existing = [SELECT COUNT() FROM Ticket_Payment__c WHERE Provider_Order_Id__c = :nv.id WITH SYSTEM_MODE];
                 if (existing == 0) { throw new PaymentException(MSG_UNAVAILABLE); }
             }
-            update new Purchase__c(Id = p.Id, Payment_Status__c = 'Pending');
+            update as system new Purchase__c(Id = p.Id, Payment_Status__c = 'Pending');
             out.success = true;
             out.checkoutUrl = nv.url;
             System.debug(LoggingLevel.INFO, LOG + 'session created ref=' + p.Request_Reference__c + ' attempt=' + attemptNo);
@@ -187,7 +195,7 @@ public without sharing class PaymentService {
             // The session must belong to an attempt WE created for THIS purchase. A forged id matches nothing.
             List<Ticket_Payment__c> rows = [
                 SELECT Id, Status__c, Amount__c, Currency_Code__c, Provider_Order_Id__c
-                FROM Ticket_Payment__c WHERE Purchase__c = :p.Id AND Provider_Order_Id__c = :sid LIMIT 1];
+                FROM Ticket_Payment__c WHERE Purchase__c = :p.Id AND Provider_Order_Id__c = :sid WITH SYSTEM_MODE LIMIT 1];
             if (rows.isEmpty()) { throw new PaymentException(MSG_NOT_MATCHED); }
             return verifyAttempt(p, rows[0]);
         } catch (PaymentException pe) {
@@ -358,8 +366,8 @@ public without sharing class PaymentService {
         Savepoint sp = Database.setSavepoint();
         try {
             Purchase__c locked = [SELECT Id, Request_Reference__c, Payment_Status__c, Quantity__c, Opportunity__c, Ticket_Category__c
-                                  FROM Purchase__c WHERE Id = :purchaseId FOR UPDATE];
-            Ticket_Payment__c a = [SELECT Id, Status__c FROM Ticket_Payment__c WHERE Id = :attemptId FOR UPDATE];
+                                  FROM Purchase__c WHERE Id = :purchaseId WITH SYSTEM_MODE FOR UPDATE];
+            Ticket_Payment__c a = [SELECT Id, Status__c FROM Ticket_Payment__c WHERE Id = :attemptId WITH SYSTEM_MODE FOR UPDATE];
 
             if (a.Status__c == 'Completed') {                       // a parallel verify already did the work
                 r.outcome = 'PAID';
@@ -367,7 +375,7 @@ public without sharing class PaymentService {
                 return r;
             }
             if (locked.Payment_Status__c == 'Paid') {               // a DIFFERENT session already paid this purchase
-                update new Ticket_Payment__c(Id = a.Id, Status__c = 'Failed',
+                update as system new Ticket_Payment__c(Id = a.Id, Status__c = 'Failed',
                     Status_Detail__c = 'Duplicate payment: this purchase was already paid. Refund this charge in Stripe.');
                 IntegrationLogger.add('Stripe', 'DuplicatePayment', null, false, corr,
                     'Second paid session for an already paid purchase', String.valueOf(purchaseId));
@@ -379,19 +387,19 @@ public without sharing class PaymentService {
 
             Integer qty = locked.Quantity__c.intValue();
             Ticket_Category__c cat = [SELECT Id, Total_Quantity__c, Sold_Quantity__c FROM Ticket_Category__c
-                                      WHERE Id = :locked.Ticket_Category__c FOR UPDATE];
+                                      WHERE Id = :locked.Ticket_Category__c WITH SYSTEM_MODE FOR UPDATE];
             Decimal sold = cat.Sold_Quantity__c == null ? 0 : cat.Sold_Quantity__c;
             Decimal total = cat.Total_Quantity__c == null ? 0 : cat.Total_Quantity__c;
             Boolean oversold = (sold + qty) > total;                 // possible only if two buyers paid for the last tickets
-            update new Ticket_Category__c(Id = cat.Id, Sold_Quantity__c = sold + qty);
+            update as system new Ticket_Category__c(Id = cat.Id, Sold_Quantity__c = sold + qty);
 
-            update new Ticket_Payment__c(Id = a.Id, Status__c = 'Completed', Capture_Id__c = v.paymentIntent,
+            update as system new Ticket_Payment__c(Id = a.Id, Status__c = 'Completed', Capture_Id__c = v.paymentIntent,
                 Verified_On__c = Datetime.now(),
                 Status_Detail__c = oversold ? 'Verified with Stripe. WARNING: category is oversold, staff review needed.'
                                             : 'Payment verified with Stripe');
-            update new Purchase__c(Id = purchaseId, Payment_Status__c = 'Paid', Paid_On__c = Datetime.now());
+            update as system new Purchase__c(Id = purchaseId, Payment_Status__c = 'Paid', Paid_On__c = Datetime.now());
             if (locked.Opportunity__c != null) {
-                update new Opportunity(Id = locked.Opportunity__c, StageName = 'Closed Won', CloseDate = Date.today());
+                update as system new Opportunity(Id = locked.Opportunity__c, StageName = 'Closed Won', CloseDate = Date.today());
             }
             if (oversold) {
                 IntegrationLogger.add('Stripe', 'OversoldAlert', null, false, corr, 'Paid purchase exceeds category capacity', String.valueOf(purchaseId));
@@ -450,13 +458,17 @@ public without sharing class PaymentService {
         }
     }
 
-    private static Map<String, String> buildSessionParams(Purchase__c p, String token, Integer qty, Long unitCents, String cur, Integer attemptNo) {
+    /** Stripe session expiry, rounded to 5 minutes so two requests in the same window send identical parameters. */
+    private static Long sessionExpiresAt() {
+        Long nowSec = Datetime.now().getTime() / 1000;
+        return ((nowSec + (TwinTicketConfig.paymentSessionMinutes() * 60) + 300) / 300) * 300;
+    }
+
+    private static Map<String, String> buildSessionParams(Purchase__c p, String token, Integer qty, Long unitCents, String cur,
+                                                          Integer attemptNo, Long expiresAt) {
         String base = TwinTicketConfig.siteBaseUrl();
         if (String.isBlank(base)) { throw new PaymentException(MSG_UNAVAILABLE); }
         String page = base + '/pay?c__ref=' + EncodingUtil.urlEncode(p.Request_Reference__c, 'UTF-8') + '&c__t=' + token;
-        // Rounded to 5 minutes so two requests with the same idempotency key send identical parameters.
-        Long nowSec = Datetime.now().getTime() / 1000;
-        Long expiresAt = ((nowSec + (TwinTicketConfig.paymentSessionMinutes() * 60) + 300) / 300) * 300;
         Map<String, String> params = new Map<String, String>{
             'mode' => 'payment',
             'success_url' => page + '&c__r=success&c__sid={CHECKOUT_SESSION_ID}',
@@ -493,7 +505,7 @@ public without sharing class PaymentService {
 
     private static List<Ticket_Payment__c> latestOpenAttempt(Id purchaseId) {
         return [SELECT Id, Status__c, Amount__c, Currency_Code__c, Provider_Order_Id__c FROM Ticket_Payment__c
-                WHERE Purchase__c = :purchaseId AND Status__c IN :OPEN_STATUSES ORDER BY CreatedDate DESC LIMIT 1];
+                WHERE Purchase__c = :purchaseId AND Status__c IN :OPEN_STATUSES WITH SYSTEM_MODE ORDER BY CreatedDate DESC LIMIT 1];
     }
 
     private static void applyClosures(Map<Id, String> closeAs, String detail) {
@@ -502,18 +514,18 @@ public without sharing class PaymentService {
         for (Id attemptId : closeAs.keySet()) {
             upd.add(new Ticket_Payment__c(Id = attemptId, Status__c = closeAs.get(attemptId), Status_Detail__c = detail));
         }
-        update upd;
+        update as system upd;
     }
 
     private static void markAttempt(Id attemptId, String status, String detail) {
-        update new Ticket_Payment__c(Id = attemptId, Status__c = status, Status_Detail__c = detail.left(255));
+        update as system new Ticket_Payment__c(Id = attemptId, Status__c = status, Status_Detail__c = detail.left(255));
     }
 
     /** Re-reads the purchase under lock so a late "cancelled" can never overwrite a real "Paid". */
     private static void setPurchaseStatusUnlessPaid(Id purchaseId, String status) {
-        Purchase__c locked = [SELECT Id, Payment_Status__c FROM Purchase__c WHERE Id = :purchaseId FOR UPDATE];
+        Purchase__c locked = [SELECT Id, Payment_Status__c FROM Purchase__c WHERE Id = :purchaseId WITH SYSTEM_MODE FOR UPDATE];
         if (locked.Payment_Status__c != 'Paid' && locked.Payment_Status__c != status) {
-            update new Purchase__c(Id = purchaseId, Payment_Status__c = status);
+            update as system new Purchase__c(Id = purchaseId, Payment_Status__c = status);
         }
     }
 

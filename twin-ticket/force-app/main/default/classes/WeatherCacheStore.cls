@@ -18,7 +18,7 @@ public without sharing class WeatherCacheStore {
     public static Cache read(Id eventId) {
         Event_Detail__c e = [SELECT Weather_Cache_Key__c, Weather_Fetched_On__c, Weather_Summary__c, Weather_Code__c,
                                     Weather_Max_Temp__c, Weather_Min_Temp__c, Weather_Precip_Prob__c, Weather_Last_Error_On__c
-                             FROM Event_Detail__c WHERE Id = :eventId LIMIT 1];
+                             FROM Event_Detail__c WHERE Id = :eventId WITH SYSTEM_MODE LIMIT 1];
         Cache c = new Cache();
         c.key = e.Weather_Cache_Key__c;
         c.fetchedOn = e.Weather_Fetched_On__c;
@@ -32,13 +32,13 @@ public without sharing class WeatherCacheStore {
     }
 
     public static void saveSuccess(Id eventId, String key, String summary, WeatherClient.Forecast f) {
-        update new Event_Detail__c(Id = eventId, Weather_Cache_Key__c = key, Weather_Fetched_On__c = Date.today(),
+        update as system new Event_Detail__c(Id = eventId, Weather_Cache_Key__c = key, Weather_Fetched_On__c = Date.today(),
             Weather_Summary__c = summary, Weather_Code__c = f.weatherCode, Weather_Max_Temp__c = f.maxTemp,
             Weather_Min_Temp__c = f.minTemp, Weather_Precip_Prob__c = f.precipProbability, Weather_Last_Error_On__c = null);
     }
 
     /** A failure stores ONLY the time of the failure. Old values are left alone and never mixed with new ones. */
     public static void saveFailure(Id eventId) {
-        update new Event_Detail__c(Id = eventId, Weather_Last_Error_On__c = Datetime.now());
+        update as system new Event_Detail__c(Id = eventId, Weather_Last_Error_On__c = Datetime.now());
     }
 }

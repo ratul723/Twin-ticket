@@ -76,12 +76,6 @@ public without sharing class BulkRequestService {
             addError(errs, 'organization', 'Organization name must be 80 characters or fewer.');
         }
         String docType = clean(input.identityDocType);
-        System.debug(LoggingLevel.WARN, LOG + 'eventId=[' + input.eventId + '] categoryId=[' + input.categoryId + ']');
-        System.debug(LoggingLevel.WARN, LOG + 'docType received=[' + docType + '] valid=' + isValidDocType(docType)
-            + ' options=' + JSON.serialize(docTypeOptions()));                 // ← ADD
-        if (!isValidDocType(docType)) {
-            addError(errs, 'identityDocType', 'Please choose a document type.');
-        }
         if (!isValidDocType(docType)) {
             addError(errs, 'identityDocType', 'Please choose a document type.');
         }
@@ -117,6 +111,10 @@ public without sharing class BulkRequestService {
             }
         }
         if (!errs.isEmpty()) {
+            // Field NAMES only (never values), so the debug log shows exactly why a guest submit was refused.
+            List<String> failed = new List<String>();
+            for (BulkRequestDto.FieldError fe : errs) { failed.add(fe.field); }
+            System.debug(LoggingLevel.WARN, LOG + 'validation failed: ' + String.join(failed, ','));
             res.message = 'Please correct the highlighted fields.';
             return res;
         }
@@ -270,6 +268,7 @@ public without sharing class BulkRequestService {
                     + ' expiresNull=' + (rows[0].Upload_Token_Expires_On__c == null)
                     + ' expired=' + (rows[0].Upload_Token_Expires_On__c != null && rows[0].Upload_Token_Expires_On__c <= Datetime.now())
                     + ' hashMatch=' + (rows[0].Upload_Token_Hash__c != null && rows[0].Upload_Token_Hash__c.equals(hash(token)))));
+            throw new RequestException(MSG_LINK_INVALID);   // SECURITY: an invalid token must STOP here
         }
         return rows[0];
     }

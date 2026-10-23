@@ -244,7 +244,7 @@ private class PaymentTest {
         Assert.isTrue(body.contains('unit_amount%5D=5000'), 'unit price in cents comes from stored data');
         Assert.isTrue(body.contains('quantity%5D=20'));
         Assert.isTrue(body.contains('client_reference_id=' + p.Request_Reference__c));
-        Assert.areEqual('TT-' + p.Id + '-1', req.getHeader('Idempotency-Key'));
+        Assert.isTrue(req.getHeader('Idempotency-Key').startsWith('TT-' + p.Id + '-1-'), 'attempt 1 key');
 
         Ticket_Payment__c a = [SELECT Id FROM Ticket_Payment__c WHERE Purchase__c = :p.Id];
         Ticket_Payment__c row = reload(a.Id);
@@ -294,7 +294,7 @@ private class PaymentTest {
         Assert.isTrue(r.success, 'start failed: ' + r.message);
         Assert.areEqual('Cancelled', reload(first.Id).Status__c);
         Assert.areEqual(2, [SELECT COUNT() FROM Ticket_Payment__c WHERE Purchase__c = :p.Id]);
-        Assert.areEqual('TT-' + p.Id + '-2', m.calls[1].getHeader('Idempotency-Key'));
+        Assert.isTrue(m.calls[1].getHeader('Idempotency-Key').startsWith('TT-' + p.Id + '-2-'), 'attempt 2 gets a new key');
     }
 
     @IsTest

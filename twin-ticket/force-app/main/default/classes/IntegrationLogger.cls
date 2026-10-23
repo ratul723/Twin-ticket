@@ -19,7 +19,7 @@ public without sharing class IntegrationLogger {
         List<Integration_Log__c> toWrite = buffer.clone();
         buffer.clear();
         try {
-            insert toWrite;
+            insert as system toWrite;   // explicit: guest pages log too, and guests have no access to this object
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'TT-LOG could not write integration logs: ' + e.getMessage());
         }
